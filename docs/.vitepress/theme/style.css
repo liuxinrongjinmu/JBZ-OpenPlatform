@@ -159,3 +159,74 @@
 .vp-doc table th:nth-child(2) {
   white-space: pre-wrap !important;
 }
+
+/* ==========================================
+   左侧菜单栏统一为标准树形格式
+   ========================================== */
+
+/* 统一各级菜单文字基础样式，消除 h2/h3 默认边距带来的错位 */
+.VPSidebarItem .text {
+  margin: 0 !important;
+  padding: 5px 0 !important;
+  line-height: 22px !important;
+  font-size: 14px !important;
+}
+
+/* 一级菜单：加粗、深色，作为分组标题 */
+.VPSidebarItem.level-0 > .item > .text {
+  font-weight: 700 !important;
+  color: var(--vp-c-text-1) !important;
+}
+
+/* 二级及以下菜单：统一常规字重，稍浅 */
+.VPSidebarItem.level-1 > .item > .text,
+.VPSidebarItem.level-2 > .item > .text,
+.VPSidebarItem.level-3 > .item > .text,
+.VPSidebarItem.level-4 > .item > .text,
+.VPSidebarItem.level-5 > .item > .text {
+  font-weight: 500 !important;
+  color: var(--vp-c-text-2) !important;
+}
+
+/* 父节点（可展开/收起）统一鼠标手势 */
+.VPSidebarItem.collapsible > .item {
+  cursor: pointer !important;
+}
+
+/* 统一展开收起箭头颜色与对齐 */
+.VPSidebarItem .caret {
+  width: 28px !important;
+  height: 28px !important;
+  margin-right: -4px !important;
+}
+
+.VPSidebarItem .caret-icon {
+  font-size: 16px !important;
+}
+
+/* 统一缩进与树形引导线：所有子级都保留左侧 1px 分隔线 */
+.VPSidebarItem.level-0 .items,
+.VPSidebarItem.level-1 .items,
+.VPSidebarItem.level-2 .items,
+.VPSidebarItem.level-3 .items,
+.VPSidebarItem.level-4 .items,
+.VPSidebarItem.level-5 .items {
+  border-left: 1px solid var(--vp-c-divider) !important;
+  padding-left: 14px !important;
+}
+
+/* 各级菜单项之间的间距一致 */
+.VPSidebarItem.level-0 {
+  padding-bottom: 16px !important;
+}
+
+.VPSidebarItem.level-0.collapsed {
+  padding-bottom: 8px !important;
+}
+
+/* 当前激活的叶子菜单高亮 */
+.VPSidebarItem.is-active > .item > .link > .text,
+.VPSidebarItem.is-active > .item > .text {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}

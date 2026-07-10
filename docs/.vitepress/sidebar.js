@@ -546,6 +546,7 @@ export default {
     },
     {
       "text": "优惠券信息",
+      "collapsed": false,
       "items": [
         {
           "text": "10.1.优惠券模板列表查询",
@@ -605,6 +606,7 @@ export default {
     },
     {
       "text": "账户信息",
+      "collapsed": false,
       "items": [
         {
           "text": "1. 账户余额批量充值",
@@ -626,6 +628,7 @@ export default {
     },
     {
       "text": "门店信息",
+      "collapsed": false,
       "items": [
         {
           "text": "11.1.门店列表查询",
@@ -679,6 +682,7 @@ export default {
     },
     {
       "text": "组织机构",
+      "collapsed": false,
       "items": [
         {
           "text": "12.1.组织机构列表查询",
@@ -724,6 +728,7 @@ export default {
     },
     {
       "text": "数据统计",
+      "collapsed": false,
       "items": [
         {
           "text": "1.查询云店数据汇总",

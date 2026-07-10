@@ -106,8 +106,8 @@ function addNodeIds(nodes, prefix = '') {
 export async function serializeSidebar(dir, tree) {
   const sidebar = await readFullSidebar()
   const key = `/${dir}/`
-  // 去掉节点 id，还原为 VitePress sidebar 格式
-  sidebar[key] = cleanNodeIds(tree)
+  // 去掉节点 id 并标准化父/叶子节点格式
+  sidebar[key] = standardizeNodes(cleanNodeIds(tree))
   await writeFullSidebar(sidebar)
   return true
 }
@@ -120,6 +120,25 @@ function cleanNodeIds(nodes) {
     ...rest,
     items: rest.items ? cleanNodeIds(rest.items) : undefined,
   }))
+}
+
+/**
+ * 标准化节点：父节点必须有 collapsed 且不能带 link；叶子节点只保留 text/link
+ */
+function standardizeNodes(nodes) {
+  return nodes.map((node) => {
+    const hasItems = Array.isArray(node.items) && node.items.length > 0
+    if (hasItems) {
+      return {
+        text: node.text,
+        collapsed: typeof node.collapsed === 'boolean' ? node.collapsed : false,
+        items: standardizeNodes(node.items),
+      }
+    }
+    const result = { text: node.text }
+    if (node.link) result.link = node.link
+    return result
+  })
 }
 
 /**

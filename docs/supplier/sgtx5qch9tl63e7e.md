@@ -34,8 +34,8 @@
 | retailName | String |  | Y | 分销商名称(未上线) |
 | items | object[] | | Y | 子订单信息 |
 
-| --- | --- | --- | --- | --- |
 | 参数 | 类型 | 示例 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- | --- |
 | orderItemNo | String | S202103091730484775354211 | Y | 子订单编号 |
 | barcode | String | 0 | Y | 商品条码 |
 | skuUniqueCode | String | 701 | Y | code |
@@ -43,8 +43,8 @@
 | quantity | number | 1 | Y | 售后数量 |
 | express | object | | N | 物流信息 |
 
-| --- | --- | --- | --- | --- |
 | 参数 | 类型 | 示例 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- | --- |
 | expressCode | String | 343543543 | N | 物流单号 |
 | expressName | String | 圆通 | N | 物流公司名 |
 | expressType | String | YTO | N | 物流类型 |
@@ -89,4 +89,3 @@
   }
 }
 ```
-

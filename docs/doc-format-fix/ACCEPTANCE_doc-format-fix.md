@@ -186,3 +186,97 @@
 - 供应商版导航链接与侧边栏菜单交互已修复并验证
 - Docker 部署成功，全站链接、下载、代码展示、表格渲染等功能正常
 - 任务完成
+
+## 9. 侧边栏菜单统一为标准树形格式（2026-07-10）
+
+### 9.1 修复内容
+
+1. **统一 `docs/.vitepress/sidebar.js` 节点格式**
+   - 父节点统一为 `{ text, collapsed, items }` 顺序，必须带 `collapsed`，禁止带 `link`
+   - 叶子节点统一为 `{ text, link }`，禁止带 `items`
+   - 运行 `node tools/fix-sidebar-standard.js` 后，商家版与供应商版全部节点已标准化
+
+2. **admin 后端持久化时自动标准化**
+   - 在 `admin/server/services/sidebarService.js` 的 `serializeSidebar` 中增加 `standardizeNodes`
+   - 后续通过管理后台新增/修改/删除菜单时，都会自动保持同样的父/叶子节点规范
+
+3. **左侧菜单栏统一树形样式**
+   - 在 `docs/.vitepress/theme/style.css` 中新增侧边栏样式：
+     - 消除 h2/h3 默认边距，统一行高与字号
+     - 一级菜单加粗深色，二/三级菜单统一字重与颜色
+     - 父节点统一手型光标与展开箭头尺寸
+     - 所有子级统一左侧 1px 引导线，缩进一致
+     - 当前激活叶子节点高亮
+
+### 9.2 重新构建与部署
+
+- 执行 `docker compose down && docker compose build --no-cache && docker compose up -d` 成功
+- 容器 `jbz-open-platform` 健康运行，端口 `8080 -> 80`
+- VitePress 构建完成，无报错
+
+### 9.3 浏览器验证
+
+| 检查项 | 商家版 `/merchant/` | 供应商版 `/supplier/` |
+| --- | --- | --- |
+| 一级菜单（如「解决方案」/「概述」） | 仅展开/收起，不可点击 | 仅展开/收起，不可点击 |
+| 二级父菜单（如「1.2 第三方商城接入」/「商品相关接口」） | 仅展开/收起，不可点击 | 仅展开/收起，不可点击 |
+| 三级父菜单（如「运费相关接口」/「消息订阅(新)」） | 仅展开/收起，不可点击 | 仅展开/收起，不可点击 |
+| 叶子菜单（如「1.1 第三方 ERP 接入」/「接入须知」） | 可点击跳转 | 可点击跳转 |
+| DOM 中父节点 | `<div role="button">` / 纯文本 | `<div role="button">` / 纯文本 |
+| DOM 中叶子节点 | `<a class="link">` | `<a class="link">` |
+| 左侧引导线与缩进 | 统一 | 统一 |
+
+### 9.4 结论
+
+- 商家版与供应商版左侧菜单栏现在使用同一套数据结构规范与视觉样式
+- 仅末级菜单可点击查看文档，所有上级菜单点击均为展开/收起
+- 已通过浏览器 DOM 检查确认无父节点带 `link`、无叶子节点缺失 `link`
+
+## 10. 表格显示异常问题修复（2026-07-10）
+
+### 10.1 问题排查
+
+- 用户反馈 `SUPPLIER_TRADE_ORDER_REFUND-售后消息事件参数` 与 `SUPPLIER_TRADE_ORDER_STATE-订单消息事件参数` 两个文档表格显示异常
+- 运行 `tools/find_inverted_table_headers.py` 扫描全部文档，发现 6 个文件共 12 处存在「分隔行在前、表头行在后」的倒置表格
+- 新增 `tools/check_all_table_issues.py` 全面检查：倒置表头、分隔行空单元格、列数不一致、分隔行缺失
+- 新增 `tools/check_inline_tables.py` 检查表格语法与其他内容位于同一行的情况
+- 新增 `tools/check_html_tables.py` 扫描构建产物 HTML，确认无未渲染的 Markdown 表格语法残留
+
+### 10.2 修复文件
+
+| 文件 | 问题 | 修复内容 |
+| --- | --- | --- |
+| `docs/supplier/sgtx5qch9tl63e7e.md` | 2 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/supplier/dn6fevbnfap7gll1.md` | 1 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/supplier/gffweww3cufk3g0k.md` | 3 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/merchant/gkq6v87nv8d9kwhh.md` | 1 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/merchant/gvxe6iazdowhkpzx.md` | 3 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/merchant/tymnf6bymfnbinvv.md` | 2 处倒置表头 | 交换分隔行与表头行位置 |
+| `docs/merchant/wyz0vu0r6nhygy2s.md` | 1 处行内表格 | 将 `### 推送消息响应` 与表格分行，表格独立成行 |
+
+### 10.3 批量脚本检查结果
+
+- `find_inverted_table_headers.py`：0 个文件存在倒置表格
+- `check_all_table_issues.py`：0 个文件存在表格问题
+- `check_inline_tables.py`：0 个文件存在行内表格问题
+- `check_html_tables.py`：0 个 HTML 文件存在未渲染表格语法
+
+### 10.4 重新构建与部署
+
+- 执行 `docker compose down && docker compose build --no-cache && docker compose up -d` 成功
+- 容器 `jbz-open-platform` 健康运行，端口 `8080 -> 80`
+- VitePress 构建完成，无报错
+
+### 10.5 浏览器验证
+
+| 检查项 | 验证结果 |
+| --- | --- |
+| `/supplier/sgtx5qch9tl63e7e` 售后消息事件参数 | 表格正常渲染，参数/类型/示例/必传/说明列显示正确 |
+| `/supplier/dn6fevbnfap7gll1` 订单消息事件参数 | 表格正常渲染，参数/类型/示例/必传/说明列显示正确 |
+| `/merchant/wyz0vu0r6nhygy2s` 第三方订单推送 | 状态流转表、参数说明表、推送消息响应表均正常渲染 |
+
+### 10.6 结论
+
+- 已全面排查并修复所有文档中的表格显示异常问题
+- 新增多种自动化检查脚本，便于后续持续监控表格格式
+- Docker 部署成功，关键页面表格渲染均正常

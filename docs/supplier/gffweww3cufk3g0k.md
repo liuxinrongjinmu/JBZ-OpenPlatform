@@ -30,8 +30,8 @@
 | total_results | Number | 100 | Y | 搜索到的交易总条数 |
 | records | object[] | | Y | 售后单记录 |
 
-| --- | --- | --- | --- | --- |
 | 参数 | 类型 | 示例 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- | --- |
 | refundNo | String | R20210309173034324 | Y | 售后单号 |
 | tid | String | S20210309173048477535421 | Y | 订单号 |
 | user_no | String | S2 | Y | 下单人编号 |
@@ -49,8 +49,8 @@
 | retailName | String |  | Y | 分销商名称 |
 | items | object | | Y | 子订单信息 |
 
-| --- | --- | --- | --- | --- |
 | 参数 | 类型 | 示例 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- | --- |
 | oid | String | 1 | Y | 子订单ID |
 | num_iid | Long | 123 | Y | 商品ID |
 | sjCode | String | A123-456 | Y | 商品自定义条码 |
@@ -64,8 +64,8 @@
 | pic_thumb_path | String | [https://img.jubaozan.cn/upload_files/2014/01/13/138961372114213030.jpg!200x0.jpg](https://img.jubaozan.cn/upload_files/2014/01/13/138961372114213030.jpg!200x0.jpg) | N | 商品主图片缩略图地址 |
 | express | object[] | | N | 物流信息 |
 
-| --- | --- | --- | --- | --- |
 | 参数 | 类型 | 示例 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- | --- |
 | expressCode | String | 343543543 | N | 物流单号 |
 | expressName | String | 圆通 | N | 物流公司名 |
 | expressType | String | YTO | N | 物流类型 |
@@ -117,4 +117,3 @@
   }
 }
 ```
-

@@ -197,4 +197,9 @@ ps: 订单状态不可逆转
 }
 ```
 
-### 推送消息响应| 参数 | 类型 | 必传(Y/N) | 说明 || --- | --- | --- | --- || code | String | Y | 0=成功 -1=失败 || msg | String | Y | success/error |
+### 推送消息响应
+
+| 参数 | 类型 | 必传(Y/N) | 说明 |
+| --- | --- | --- | --- |
+| code | String | Y | 0=成功 -1=失败 |
+| msg | String | Y | success/error |
