@@ -3,7 +3,10 @@
  */
 import express from 'express'
 import session from 'express-session'
+import createFileStore from 'session-file-store'
+import crypto from 'node:crypto'
 import path from 'node:path'
+import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { authMiddleware, handleLogin, handleLogout, checkAuth } from './auth.js'
@@ -16,18 +19,40 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.ADMIN_PORT || 3001
 
+// --- 会话持久化目录 ---
+const sessionsDir = path.resolve(process.cwd(), 'data/sessions')
+fs.mkdirSync(sessionsDir, { recursive: true })
+
+const FileStore = createFileStore(session)
+
+// --- 会话密钥 ---
+const sessionSecret =
+  process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex')
+
+if (!process.env.SESSION_SECRET) {
+  console.warn('[Admin] ⚠️  未设置 SESSION_SECRET 环境变量，使用随机密钥（重启后所有会话失效）')
+  console.warn(`[Admin] 建议在 .env 中设置: SESSION_SECRET=${sessionSecret}`)
+} else {
+  console.log('[Admin] ✅ 使用环境变量中的 SESSION_SECRET')
+}
+
 // --- 中间件 ---
 app.use(express.json({ limit: '10mb' }))
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'jbz-admin-secret-' + Date.now(),
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
+    store: new FileStore({
+      path: sessionsDir,
+      ttl: 8 * 60 * 60, // 8小时过期
+      retries: 0,
+    }),
     cookie: {
       httpOnly: true,
       sameSite: 'strict',
       maxAge: 8 * 60 * 60 * 1000, // 8小时
-      secure: process.env.NODE_ENV === 'production' ? false : false, // Docker 内不强制 HTTPS
+      secure: process.env.NODE_ENV === 'production' ? false : false,
     },
   })
 )
@@ -43,7 +68,7 @@ app.use('/api/admin/images', authMiddleware, imagesRouter)
 app.use('/api/admin/build', authMiddleware, buildRouter)
 app.post('/api/admin/logout', authMiddleware, handleLogout)
 
-// --- Admin SPA 静态文件（开发模式由 Vite 单独处理，生产模式提供文件） ---
+// --- Admin SPA 静态文件 ---
 const clientDist = path.resolve(__dirname, '../client')
 app.use('/admin', express.static(clientDist, { extensions: ['html'] }))
 

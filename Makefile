@@ -42,8 +42,6 @@ stop:
 logs:
 	docker compose logs -f
 
-# 清理
+# 清理构建产物（不删除源代码和文档）
 clean:
 	rm -rf docs/.vitepress/dist docs/.vitepress/cache
-	rm -rf docs/merchant docs/supplier docs/public/images
-	rm -rf docs/.vitepress/sidebar.js docs/.vitepress/config.ts docs/index.md

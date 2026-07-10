@@ -18,6 +18,9 @@ WORKDIR /app
 # 安装 nginx 和 supervisor
 RUN apk add --no-cache nginx supervisor gettext git
 
+# 创建数据持久化目录
+RUN mkdir -p /app/data/sessions
+
 # 复制 VitePress 构建产物
 COPY --from=builder /app/docs/.vitepress/dist/ /usr/share/nginx/html/
 
@@ -27,7 +30,8 @@ COPY --from=builder /app/docs/ /app/docs/
 # 复制管理后台代码
 COPY admin/ admin/
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# 安装所有依赖（管理后台需要 vitepress 用于重新构建）
+RUN npm ci
 
 # 复制 Nginx 配置模板和启动脚本
 COPY nginx.conf.template /etc/nginx/nginx.conf.template

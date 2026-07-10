@@ -1,0 +1,12 @@
+node_modules
+docs/.vitepress/dist
+docs/.vitepress/cache
+.git
+.backup_*
+data
+.env
+*.tar
+*.tar.gz
+.DS_Store
+.trae
+docs-management

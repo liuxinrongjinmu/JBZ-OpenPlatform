@@ -3,6 +3,9 @@
  */
 import { Router } from 'express'
 import { spawn } from 'node:child_process'
+import { execSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const router = Router()
 
@@ -59,8 +62,19 @@ router.post('/', (req, res) => {
     buildState.running = false
 
     if (code === 0) {
+      // 构建成功后，同步 dist 到 nginx 静态目录
+      try {
+        const distDir = path.resolve(process.cwd(), 'docs/.vitepress/dist')
+        const nginxDir = '/usr/share/nginx/html'
+        send('log', { line: '正在同步文件到 Nginx...' })
+        execSync(`cp -r ${distDir}/* ${nginxDir}/`, { stdio: 'pipe' })
+        send('log', { line: '文件同步完成' })
+      } catch (syncErr) {
+        send('log', { line: `同步失败: ${syncErr.message}`, level: 'warn' })
+      }
+
       buildState.lastResult = { success: true, time: elapsed }
-      send('status', { phase: 'done', message: `构建完成，耗时 ${elapsed}s` })
+      send('status', { phase: 'done', message: `构建完成，耗时 ${elapsed}s，网站已更新` })
     } else {
       buildState.lastResult = { success: false, time: elapsed, error: `退出码: ${code}` }
       send('error', { message: `构建失败 (退出码: ${code})`, code })

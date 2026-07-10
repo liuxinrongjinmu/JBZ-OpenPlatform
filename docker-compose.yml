@@ -5,12 +5,19 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+    volumes:
+      # 文档源文件持久化（管理后台编辑的文档保存在宿主机，容器重建不丢失）
+      - ./docs:/app/docs
+      # 管理员 Session 持久化（容器重启不影响登录状态）
+      - ./data/sessions:/app/data/sessions
     environment:
       # AI聊天API Key，从 .env 文件读取
       # 修改 .env 中的 VITE_DEEPSEEK_API_KEY 后需重新构建镜像
       - DEEPSEEK_API_KEY=${VITE_DEEPSEEK_API_KEY:-}
       # 管理员后台登录密码
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      # 会话加密密钥
+      - SESSION_SECRET=${SESSION_SECRET:-}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/health"]
       interval: 30s

@@ -1,6 +1,8 @@
 /**
  * 侧边栏服务 - 解析和修改 sidebar.js 菜单配置
  * sidebar.js 是一个 ESM 模块：export default { "/merchant/": [...], "/supplier/": [...] }
+ *
+ * 采用全量解析-修改-序列化策略，不使用正则替换，确保可靠性。
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -10,26 +12,73 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SIDEBAR_PATH = path.resolve(__dirname, '../../../docs/.vitepress/sidebar.js')
 
 /**
- * 读取 sidebar.js 并解析为 JSON 树
- * 策略：用 eval（动态 import 在 ESM 中可能有问题），这里用正则解析
+ * 读取并解析整个 sidebar.js 配置对象
+ * 使用 Function 构造器执行 JS 字面量，安全高效
+ */
+async function readFullSidebar() {
+  const raw = await fs.readFile(SIDEBAR_PATH, 'utf-8')
+  // 提取 export default 后的对象字面量
+  const match = raw.match(/export\s+default\s+({[\s\S]*})/m)
+  if (!match) throw new Error('Cannot parse sidebar.js: no export default found')
+  const evalFn = new Function(`return ${match[1]}`)
+  return evalFn()
+}
+
+/**
+ * 将完整 sidebar 对象写回文件
+ */
+async function writeFullSidebar(sidebar) {
+  const content = 'export default ' + formatObject(sidebar, 0) + '\n'
+  await fs.writeFile(SIDEBAR_PATH, content, 'utf-8')
+}
+
+/**
+ * 格式化 JS 对象字面量（支持嵌套对象和数组）
+ */
+function formatObject(obj, indent) {
+  const pad = '  '.repeat(indent)
+  const pad1 = '  '.repeat(indent + 1)
+
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]'
+    const items = obj.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return pad1 + formatObject(item, indent + 1)
+      }
+      return pad1 + JSON.stringify(item)
+    })
+    return '[\n' + items.join(',\n') + '\n' + pad + ']'
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const entries = []
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === undefined) continue
+      let valStr
+      if (Array.isArray(value)) {
+        valStr = formatObject(value, indent + 1)
+      } else if (typeof value === 'object' && value !== null) {
+        valStr = formatObject(value, indent + 1)
+      } else {
+        valStr = JSON.stringify(value)
+      }
+      entries.push(`${pad1}${JSON.stringify(key)}: ${valStr}`)
+    }
+    if (entries.length === 0) return '{}'
+    return '{\n' + entries.join(',\n') + '\n' + pad + '}'
+  }
+
+  return JSON.stringify(obj)
+}
+
+/**
+ * 获取指定目录的菜单树（带节点 id）
  */
 export async function parseSidebar(dir) {
-  const raw = await fs.readFile(SIDEBAR_PATH, 'utf-8')
-
-  // 用正则提取 export default 后的对象字符串
-  const match = raw.match(/export\s+default\s+({[\s\S]*})/m)
-  if (!match) throw new Error('Cannot parse sidebar.js')
-
-  // 简单策略：用 Function 构造器执行，安全沙箱返回对象
-  const objStr = match[1]
-  const evalFn = new Function(`return ${objStr}`)
-  const sidebar = evalFn()
-
+  const sidebar = await readFullSidebar()
   const key = `/${dir}/`
   const tree = sidebar[key] || []
-
-  // 给每个节点加唯一 id (路径索引)
-  return addNodeIds(tree, key)
+  return addNodeIds(structuredClone ? structuredClone(tree) : JSON.parse(JSON.stringify(tree)), key)
 }
 
 /**
@@ -52,31 +101,19 @@ function addNodeIds(nodes, prefix = '') {
 }
 
 /**
- * 将 JSON 树序列化回 sidebar.js
+ * 将 JSON 树序列化回 sidebar.js（全量写回）
  */
 export async function serializeSidebar(dir, tree) {
-  const raw = await fs.readFile(SIDEBAR_PATH, 'utf-8')
+  const sidebar = await readFullSidebar()
   const key = `/${dir}/`
-
   // 去掉节点 id，还原为 VitePress sidebar 格式
-  const cleanTree = cleanNodeIds(tree)
-
-  // 构造替换内容：格式化 JSON 为 JS 对象字面量
-  const newSection = formatSidebarSection(cleanTree, 2)
-
-  // 找到对应 section 在文件中的位置并替换
-  const regex = new RegExp(
-    `("${key.replace(/\//g, '\\/')}"\\s*:\\s*\\[)[\\s\\S]*?(\\n\\s*\\])`,
-    'm'
-  )
-  const updated = raw.replace(regex, `$1${newSection}$2`)
-
-  await fs.writeFile(SIDEBAR_PATH, updated, 'utf-8')
+  sidebar[key] = cleanNodeIds(tree)
+  await writeFullSidebar(sidebar)
   return true
 }
 
 /**
- * 移除节点中的 id 属性
+ * 移除节点中的 id 属性（递归）
  */
 function cleanNodeIds(nodes) {
   return nodes.map(({ id, ...rest }) => ({
@@ -86,38 +123,12 @@ function cleanNodeIds(nodes) {
 }
 
 /**
- * 格式化 sidebar section 为 JS 对象字面量
- */
-function formatSidebarSection(nodes, indentLevel) {
-  const indent = '  '.repeat(indentLevel)
-  const lines = ['\n']
-  for (const node of nodes) {
-    lines.push(`${indent}{\n`)
-    lines.push(`${indent}  "text": ${JSON.stringify(node.text)}`)
-    if (node.link) {
-      lines.push(`,\n${indent}  "link": ${JSON.stringify(node.link)}`)
-    }
-    if (node.collapsed !== undefined) {
-      lines.push(`,\n${indent}  "collapsed": ${node.collapsed}`)
-    }
-    if (node.items && node.items.length > 0) {
-      lines.push(`,\n${indent}  "items": [${formatSidebarSection(node.items, indentLevel + 1)}${indent}  ]`)
-    }
-    lines.push(`\n${indent}}`)
-    if (nodes.indexOf(node) < nodes.length - 1) lines.push(',')
-    lines.push('\n')
-  }
-  return lines.join('')
-}
-
-/**
  * 在指定父节点下新增菜单项
  */
 export async function addSidebarNode(dir, parentId, newNode) {
   const tree = await parseSidebar(dir)
 
   if (!parentId) {
-    // 添加到根级别
     tree.push({
       text: newNode.text,
       link: newNode.link || undefined,
