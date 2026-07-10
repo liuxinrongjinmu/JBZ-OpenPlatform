@@ -1,0 +1,27 @@
+{
+  "name": "jubaozan-open-platform",
+  "version": "1.0.0",
+  "description": "聚宝赞开放平台 - API文档站点",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:serve": "node tools/preview-server.js",
+    "admin:dev": "node admin/server/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "vitepress": "^1.5.0"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.3.0",
+    "multer": "^1.4.5-lts.1",
+    "nanoid": "^5.0.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0"
+  }
+}

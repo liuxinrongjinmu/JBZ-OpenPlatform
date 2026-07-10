@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-07-07 22:20:44",
+  "books": [
+    {
+      "slug": "merchant",
+      "name": "开放平台商家版",
+      "total_docs": 160,
+      "migrated_docs": 160,
+      "images": 12,
+      "failed": [
+        {
+          "doc_id": 222207575,
+          "title": "4.9. 优选联盟短链二次生成 (视频号)",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/222207575?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 275293768,
+          "title": "5.27 第三方订单退款",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/275293768?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 131552808,
+          "title": "9.4.积分明细查询",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/131552808?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 275930349,
+          "title": "9.6. 积分扣减V2(未上线)",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/275930349?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 241712245,
+          "title": "11.6 门店邀请入驻",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/241712245?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 233835830,
+          "title": "数据统计",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/233835830?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 233835959,
+          "title": "1.查询云店数据汇总",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/233835959?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 233850930,
+          "title": "2.查询云店数据详情",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/233850930?book_id=40874077&merge_dynamic_data=false&mode=markdown"
+        }
+      ]
+    },
+    {
+      "slug": "supplier",
+      "name": "供应商开放平台",
+      "total_docs": 56,
+      "migrated_docs": 56,
+      "images": 11,
+      "failed": [
+        {
+          "doc_id": 147841261,
+          "title": "消息推送-作废",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/147841261?book_id=44246655&merge_dynamic_data=false&mode=markdown"
+        },
+        {
+          "doc_id": 148298272,
+          "title": "取消消息推送-作废",
+          "error": "401 Client Error: Unauthorized for url: https://jubaozan.yuque.com/api/docs/148298272?book_id=44246655&merge_dynamic_data=false&mode=markdown"
+        }
+      ]
+    }
+  ],
+  "total_docs": 216,
+  "total_images": 23,
+  "total_failed": 10
+}

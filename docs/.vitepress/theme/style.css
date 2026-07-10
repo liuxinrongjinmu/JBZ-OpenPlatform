@@ -1,0 +1,161 @@
+/**
+ * VitePress 自定义样式
+ * 统一文档标题样式：标题下只显示一条 --- 分割线作为下划线
+ */
+
+/* 移除所有标题的默认边框（VitePress的h2默认有 border-top，需要去掉） */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  outline: none;
+}
+
+/* h1 样式：标题更突出 */
+.vp-doc h1 {
+  font-weight: 700 !important;
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* h2 标题：去掉上方 border-top 和 padding-top，使用正常间距 */
+.vp-doc h2 {
+  margin-top: 32px !important;
+  margin-bottom: 16px !important;
+  font-weight: 600 !important;
+  font-size: 1.4rem !important;
+  line-height: 1.4 !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+/* h3 标题 */
+.vp-doc h3 {
+  margin-top: 24px !important;
+  margin-bottom: 12px !important;
+  font-weight: 600 !important;
+  font-size: 1.2rem !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+/* h4 标题 */
+.vp-doc h4 {
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+/* hr 分割线：只显示在 h1 下方，形成单行+下划线效果 */
+.vp-doc hr {
+  margin: 0 0 24px 0 !important;
+  height: 1px;
+  background-color: var(--vp-c-divider);
+  border: 0;
+}
+
+/* ==========================================
+   表格样式优化
+   列宽自动适配、行高适中、长内容换行不撑破
+   ========================================== */
+
+/* 表格容器：支持横向滚动兜底 */
+.vp-doc .table-wrapper,
+.vp-doc table {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 表格本身：自动列宽 */
+.vp-doc table {
+  table-layout: auto !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: 16px 0 !important;
+  display: table !important;
+  font-size: 14px !important;
+}
+
+/* 表头单元格：加粗、居中、合适的内边距 */
+.vp-doc table thead th,
+.vp-doc table th {
+  background-color: var(--vp-c-bg-soft) !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  padding: 10px 12px !important;
+  line-height: 1.5 !important;
+  vertical-align: middle !important;
+  border-bottom: 2px solid var(--vp-c-divider) !important;
+  white-space: nowrap !important;
+  color: var(--vp-c-text-1) !important;
+}
+
+/* 表格单元格：合适的内边距、行高、换行规则 */
+.vp-doc table tbody td,
+.vp-doc table td {
+  padding: 10px 12px !important;
+  line-height: 1.6 !important;
+  vertical-align: top !important;
+  border-bottom: 1px solid var(--vp-c-divider) !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  color: var(--vp-c-text-2) !important;
+}
+
+/* 表格斑马纹（隔行换色） */
+.vp-doc table tbody tr:nth-child(even) {
+  background-color: var(--vp-c-bg-soft) !important;
+}
+
+/* 表格悬停高亮 */
+.vp-doc table tbody tr:hover {
+  background-color: var(--vp-c-bg-mute) !important;
+}
+
+/* 表格代码样式（在表格内显示代码） */
+.vp-doc table code {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  background-color: var(--vp-c-bg-mute) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-size: 0.9em !important;
+}
+
+/* 表格中带 <br> 的内容显示更清晰 */
+.vp-doc table td br {
+  display: block !important;
+  margin-top: 4px !important;
+  content: " ";
+  line-height: 1.6 !important;
+}
+
+/* 嵌套表格：去掉外边距 */
+.vp-doc table table {
+  margin: 0 !important;
+}
+
+/* ==========================================
+   隐藏标题悬停时出现的 # 锚点符号
+   ========================================== */
+.vp-doc .header-anchor {
+  display: none !important;
+}
+
+/* ==========================================
+   保留表格参数列中的前导空格，使嵌套层级可见
+   ========================================== */
+.vp-doc table td:nth-child(2),
+.vp-doc table th:nth-child(2) {
+  white-space: pre-wrap !important;
+}

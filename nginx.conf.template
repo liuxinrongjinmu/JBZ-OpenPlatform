@@ -1,0 +1,107 @@
+server {
+    listen       80;
+    server_name  _;
+
+    # 避免外部端口映射（如 8080->80）时出现错误端口的绝对重定向
+    absolute_redirect off;
+
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    # 健康检查端点（供 docker healthcheck / 负载均衡器探测）
+    location /health {
+        access_log off;
+        add_header Content-Type application/json;
+        return 200 '{"status":"ok"}';
+    }
+
+    # 管理后台 SPA - 代理到 Express (^~ 阻止正则 location 覆盖)
+    location ^~ /admin {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # 管理后台 API - 代理到 Express
+    location ^~ /api/admin {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_cache off;
+        # 支持 SSE 长连接
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        chunked_transfer_encoding on;
+    }
+
+    # VitePress cleanUrls 支持
+    location / {
+        try_files $uri $uri/ $uri.html $uri/index.html =404;
+    }
+
+    # HTML 页面不缓存，避免 VitePress SPA 构建更新后因浏览器缓存导致旧版菜单/链接不生效
+    location ~* \.html$ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires -1;
+    }
+
+    # 图片缓存
+    location /images/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # AI 聊天代理：保护 API Key 不暴露到前端
+    # 将 /api/chat 请求代理到 DeepSeek，注入 Authorization 头
+    location /api/chat {
+        # API Key 通过环境变量 DEEPSEEK_API_KEY 注入
+        set $api_key $DEEPSEEK_API_KEY;
+
+        proxy_pass https://api.deepseek.com/v1/chat/completions;
+        proxy_ssl_server_name on;
+        proxy_set_header Host api.deepseek.com;
+        proxy_set_header Authorization "Bearer $api_key";
+        proxy_set_header Content-Type "application/json";
+        proxy_set_header Accept "text/event-stream";
+
+        # 流式响应支持（SSE）
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 300s;
+        chunked_transfer_encoding off;
+
+        # CORS 头（允许同源调用）
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type" always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+    }
+
+    # 404 页面
+    error_page 404 /404.html;
+
+    # gzip 压缩
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+}

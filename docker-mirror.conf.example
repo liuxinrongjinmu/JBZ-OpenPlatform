@@ -1,0 +1,22 @@
+# Docker 镜像加速配置说明
+#
+# 如果 Docker Hub 拉取 node:20-alpine / nginx:alpine 仍然失败，
+# 可以在 Dockerfile 中将基础镜像替换为国内镜像源：
+#
+#   node:20-alpine       → registry.cn-hangzhou.aliyuncs.com/library/node:20-alpine
+#   nginx:alpine         → registry.cn-hangzhou.aliyuncs.com/library/nginx:alpine
+#
+# 或配置 Docker daemon 镜像加速器（推荐）：
+#
+# 编辑 /etc/docker/daemon.json（Linux）或 Docker Desktop 设置：
+#
+# {
+#   "registry-mirrors": [
+#     "https://registry.cn-hangzhou.aliyuncs.com",
+#     "https://docker.mirrors.ustc.edu.cn"
+#   ]
+# }
+#
+# 然后重启 Docker：
+#   Linux: sudo systemctl restart docker
+#   macOS: 重启 Docker Desktop

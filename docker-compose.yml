@@ -1,0 +1,18 @@
+services:
+  open-platform-docs:
+    build: .
+    container_name: jbz-open-platform
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      # AI聊天API Key，从 .env 文件读取
+      # 修改 .env 中的 VITE_DEEPSEEK_API_KEY 后需重新构建镜像
+      - DEEPSEEK_API_KEY=${VITE_DEEPSEEK_API_KEY:-}
+      # 管理员后台登录密码
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
