@@ -59,10 +59,10 @@ router.post('/', async (req, res) => {
           ? content.slice(0, 12000) + '\n\n...（文档内容过长，已截断）'
           : content
 
-        contextBlock += `### ${title}\n路径: ${docPath}\n\n${truncated}\n\n---\n\n`
+        contextBlock += `### [${title}](${docPath})\n\n${truncated}\n\n---\n\n`
       }
 
-      contextBlock += '## 回答要求\n1. 严格基于上述文档内容回答，禁止编造参数或示例\n2. 引用文档路径时使用 /merchant/xxx 或 /supplier/xxx 格式\n3. 如果文档中找不到答案，明确说明'
+      contextBlock += '## 回答要求\n1. 严格基于上述文档内容回答，禁止编造参数或示例\n2. 回答末尾必须添加「📖 参考文档」小节，用 Markdown 链接列出引用的文档，格式如下：\n```\n📖 参考文档：\n- [文档标题](/merchant/xxx)\n- [文档标题](/supplier/xxx)\n```\n3. 如果文档中找不到答案，明确说明'
       console.log(`[RAG Chat] 成功加载 ${loadedCount} 篇文档完整内容`)
     } else {
       console.log(`[RAG Chat] 未找到相关文档，使用纯 Prompt 模式`)
