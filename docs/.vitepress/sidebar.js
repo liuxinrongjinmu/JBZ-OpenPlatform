@@ -215,10 +215,6 @@ export default {
           "link": "/merchant/zlb9k3kgl93a4cfk.md"
         },
         {
-          "text": "4.9.优选联盟短链二次生成 (视频号)",
-          "link": "/merchant/ymh7oac7x9rvt3yl.md"
-        },
-        {
           "text": "4.10.新增积分商品",
           "link": "/merchant/te5mo465rna1pid1.md"
         },
@@ -363,10 +359,6 @@ export default {
         {
           "text": "5.26.订单确认收货",
           "link": "/merchant/zz2mqe8r8huedcva.md"
-        },
-        {
-          "text": "5.27.第三方订单退款",
-          "link": "/merchant/mpozp0xu4u8nn6q9.md"
         }
       ]
     },
@@ -531,16 +523,8 @@ export default {
           "link": "/merchant/yxay5kdunsepif0f.md"
         },
         {
-          "text": "9.4.积分明细查询",
-          "link": "/merchant/cty55u96u74i9xr5.md"
-        },
-        {
           "text": "9.5.积分明细查询V2",
           "link": "/merchant/pokiwxyfcfmhbg54.md"
-        },
-        {
-          "text": "9.6.积分扣减V2(未上线)",
-          "link": "/merchant/kgl1ao8ggodg35bo.md"
         }
       ]
     },
@@ -651,10 +635,6 @@ export default {
           "link": "/merchant/hafwuiroo6q44v80.md"
         },
         {
-          "text": "11.6.门店邀请入驻",
-          "link": "/merchant/uekc9qqocl8129lm.md"
-        },
-        {
           "text": "11.7.查询用户归属门店",
           "link": "/merchant/cvt4x27w4vwpkdgg.md"
         },
@@ -723,20 +703,6 @@ export default {
         {
           "text": "直播间列表",
           "link": "/merchant/pams7afg2mnc0gr1.md"
-        }
-      ]
-    },
-    {
-      "text": "数据统计",
-      "collapsed": false,
-      "items": [
-        {
-          "text": "1.查询云店数据汇总",
-          "link": "/merchant/zfruod166safz3sp.md"
-        },
-        {
-          "text": "2.查询云店数据详情",
-          "link": "/merchant/wni8bqwt5f1thzv2.md"
         }
       ]
     }
@@ -955,14 +921,6 @@ export default {
                   "link": "/supplier/faor22qzmwpifz0f.md"
                 }
               ]
-            },
-            {
-              "text": "消息推送-作废",
-              "link": "/supplier/rq97dtuumebxeqsn.md"
-            },
-            {
-              "text": "取消消息推送-作废",
-              "link": "/supplier/dea2g02e816psnz9.md"
             },
             {
               "text": "公共推送参数",

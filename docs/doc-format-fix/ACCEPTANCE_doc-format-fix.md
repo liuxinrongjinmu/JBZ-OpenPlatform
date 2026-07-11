@@ -280,3 +280,57 @@
 - 已全面排查并修复所有文档中的表格显示异常问题
 - 新增多种自动化检查脚本，便于后续持续监控表格格式
 - Docker 部署成功，关键页面表格渲染均正常
+
+## 11. 用户反馈 8 类文档问题修复与验证（2026-07-10 晚间）
+
+### 11.1 修复内容
+
+针对用户反馈的 8 类问题，已完成源码级修复：
+
+| 序号 | 问题描述 | 涉及文件 | 修复内容 |
+| --- | --- | --- | --- |
+| 1 | 13.2/13.3/5.11/5.13 表格样式异常 | `docs/merchant/nr4yudzz1llqo5iw.md`<br>`docs/merchant/gxxkmv6u0y7fh8ag.md`<br>`docs/merchant/gv1cscnazo5f0qxy.md`<br>`docs/merchant/cfgn4491aibgwv2f.md` | 补全"参数说明"等三级标题，规范表头，在表格之间添加空行，补全响应示例 |
+| 2 | 表格列宽/行高不合理 | 全站表格 | 优化 `docs/.vitepress/theme/style.css` 表格列宽策略，限制首列/中间列最大宽度，保证最后一列"说明"有充足空间，长文本自然换行 |
+| 3 | 6.2 第三方会员同步代码块异常 | `docs/merchant/aqdwdtg4d69n56kt.md` | Java 代码块添加正确换行与缩进；C# 代码块语言标签从 `html` 改为 `csharp` 并格式化 |
+| 4 | 7.14 优惠券发放消息表格 | `docs/merchant/gkq6v87nv8d9kwhh.md` | 修正"请求参数说明"标题，规范 CouponDistribution 子表结构 |
+| 5 | 7.16 积分消息标题缺字、积分类型值展示 | `docs/merchant/gacwwqnad78d35gz.md` | 补全标题首字，将积分类型值改为 Markdown 表格展示 |
+| 6 | 9.5 积分明细查询 V2 来源字典 | `docs/merchant/pokiwxyfcfmhbg54.md` | 将 `<font>` 标签包裹的来源字典改为 Markdown 表格 |
+| 7 | 12.1 组织机构列表查询重复错误响应示例 | `docs/merchant/oyhbrsf5zs3m9zec.md` | 删除重复的错误响应示例，仅保留一个 |
+| 8 | 13.1 购卡记录多余错误响应行 | `docs/merchant/bmq6cx4589qp17gq.md` | 删除末尾多余的 `{ "error_response": ... }` 行 |
+
+### 11.2 重新构建与部署
+
+- 执行 `docker compose down && docker compose build --no-cache && docker compose up -d` 成功
+- 容器 `jbz-open-platform` 健康运行，端口 `8080 -> 80`
+- VitePress 构建完成，无报错
+- 生成 HTML 文件 200 个，空 HTML 文件 0 个（较上次减少是因为已删除未抓取成功的 401 文档）
+
+### 11.3 批量脚本复查
+
+- `find_inverted_table_headers.py`：0 个文件存在倒置表格
+- `check_all_table_issues.py`：0 个文件存在表格问题
+- `check_inline_tables.py`：0 个文件存在行内表格问题
+- 容器内 HTML 扫描：0 个 HTML 文件存在未渲染的 Markdown 表格语法
+- `comprehensive_check.py`：死链 0、无效 JSON 0、接口说明分行 0；短文件 6 个、Excel 链接检查 2 个提示（均为预期内：3.2/3.3 简化下载页、本地未保留 dist 目录导致脚本无法校验容器内文件）
+
+### 11.4 浏览器逐项验证
+
+| 序号 | 检查页面 | 验证结果 |
+| --- | --- | --- |
+| 1 | `/merchant/nr4yudzz1llqo5iw` 13.2 查询商品评价接口 | 表格正常渲染，表头完整，无裸露 Markdown 语法 |
+| 1 | `/merchant/gxxkmv6u0y7fh8ag` 13.3 查询商品分组接口 | 表格正常渲染，返回结果表头正确 |
+| 1 | `/merchant/gv1cscnazo5f0qxy` 5.11 查询跨境配置 | 表格正常渲染，响应示例完整 |
+| 1 | `/merchant/cfgn4491aibgwv2f` 5.13 查询订单核销记录 | 表格正常渲染，参数说明/返回结果/WriteOffListVO 结构清晰 |
+| 2 | 上述页面及 6.2/7.14 等页面 | 列宽相对均衡，"说明"列有足够空间，长文本自然换行，未出现行高异常过高 |
+| 3 | `/merchant/aqdwdtg4d69n56kt` 6.2 第三方会员同步 | Java/C# 代码块语法高亮、缩进正常 |
+| 4 | `/merchant/gkq6v87nv8d9kwhh` 7.14 优惠券发放消息 | 请求参数说明表与 CouponDistribution 表正常渲染，列标题正确 |
+| 5 | `/merchant/gacwwqnad78d35gz` 7.16 积分消息 | 标题完整（"积分类型字典"/"公共请求示例"/"积分msg示例"），积分类型值以表格展示 |
+| 6 | `/merchant/pokiwxyfcfmhbg54` 9.5 积分明细查询 V2 | "来源字典"以 Markdown 表格展示 |
+| 7 | `/merchant/oyhbrsf5zs3m9zec` 12.1 组织机构列表查询 | 仅有一个"错误响应示例"，无重复 |
+| 8 | `/merchant/bmq6cx4589qp17gq` 13.1 购卡记录 | 末尾无多余错误响应行 |
+
+### 11.5 结论
+
+- 用户反馈的 8 类文档问题已全部修复
+- 已通过批量脚本和浏览器逐项验证，未发现残留问题
+- Docker 部署成功，全站文档可正常访问

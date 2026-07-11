@@ -69,130 +69,70 @@
 
 ### 来源字典
 
-<font style="color:rgb(38, 44, 49);">(1,"积分消费"),</font>
-
-<font style="color:rgb(38, 44, 49);">(2,"推广积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(3,"首次扫码"),</font>
-
-<font style="color:rgb(38, 44, 49);">(4,"购买商品积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(5,"推广积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(6,"商家奖励/扣除"),</font>
-
-<font style="color:rgb(38, 44, 49);">(7,"取消关注"),</font>
-
-<font style="color:rgb(38, 44, 49);">(8,"积分转换"),</font>
-
-<font style="color:rgb(38, 44, 49);">(9,"全返积分转换"),</font>
-
-<font style="color:rgb(38, 44, 49);">(10,"分享文章"),</font>
-
-<font style="color:rgb(38, 44, 49);">(11,"抽奖获得积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(12,"生日赠送积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(13,"新建积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(14,"产品赠送积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(15,"积分初始化"),</font>
-
-<font style="color:rgb(38, 44, 49);">(17,"完善资料"),</font>
-
-<font style="color:rgb(38, 44, 49);">(18,"推广海报"),</font>
-
-<font style="color:rgb(38, 44, 49);">(19,"推荐下载APP"),</font>
-
-<font style="color:rgb(38, 44, 49);">(20,"社群海报分享"),</font>
-
-<font style="color:rgb(38, 44, 49);">(21,"推荐用户完成公众号登录"),</font>
-
-<font style="color:rgb(38, 44, 49);">(22,"公众号登录"),</font>
-
-<font style="color:rgb(38, 44, 49);">(24,"拼团活动"),</font>
-
-<font style="color:rgb(38, 44, 49);">(25,"内容发布"),</font>
-
-<font style="color:rgb(38, 44, 49);">(26,"积分兑换余额"),</font>
-
-<font style="color:rgb(38, 44, 49);">(27,"积分兑换余额退回"),</font>
-
-<font style="color:rgb(38, 44, 49);">(28,"开放平台添加积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(29,"开放平台扣减积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(31,"活动中心赠送积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(32,"购买有礼赠送积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(33,"奖品中心积分回收"),</font>
-
-<font style="color:rgb(38, 44, 49);">(34,"积分过期"),</font>
-
-<font style="color:rgb(38, 44, 49);">(36,"兑换优惠券"),</font>
-
-<font style="color:rgb(38, 44, 49);">(37,"积分过期"),</font>
-
-<font style="color:rgb(38, 44, 49);">(40,"订单转换有礼"),</font>
-
-<font style="color:rgb(38, 44, 49);">(41,"进店有礼"),</font>
-
-<font style="color:rgb(38, 44, 49);">(42,"会员权益"),</font>
-
-<font style="color:rgb(38, 44, 49);">(43,"积分抵现"),</font>
-
-<font style="color:rgb(38, 44, 49);">(44,"购买有礼积分回收"),</font>
-
-<font style="color:rgb(38, 44, 49);">(45,"邀请观看"),</font>
-
-<font style="color:rgb(38, 44, 49);">(46,"预约直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(47,"购买商品"),</font>
-
-<font style="color:rgb(38, 44, 49);">(48,"直播间评论"),</font>
-
-<font style="color:rgb(38, 44, 49);">(49,"直播间打赏"),</font>
-
-<font style="color:rgb(38, 44, 49);">(50,"观看时长"),</font>
-
-<font style="color:rgb(38, 44, 49);">(51,"加积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(52,"邀请榜奖励"),</font>
-
-<font style="color:rgb(38, 44, 49);">(53,"直播间签到"),</font>
-
-<font style="color:rgb(38, 44, 49);">(54,"直播红包"),</font>
-
-<font style="color:rgb(38, 44, 49);">(55,"直播观看奖励"),</font>
-
-<font style="color:rgb(38, 44, 49);">(56,"直播抽奖"),</font>
-
-<font style="color:rgb(38, 44, 49);">(57,"订单退款"),</font>
-
-<font style="color:rgb(38, 44, 49);">(58,"直播上榜奖励"),</font>
-
-<font style="color:rgb(38, 44, 49);">(59,"抽奖消耗积分"),</font>
-
-<font style="color:rgb(38, 44, 49);">(60,"积分参团"),</font>
-
-<font style="color:rgb(38, 44, 49);">(61,"观看直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(62,"转发直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(63,"好友看直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(64,"新用户看直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(65,"用户看直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(66,"直播任务"),</font>
-
-<font style="color:rgb(38, 44, 49);">(67,"好友预约直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(68,"好友预约直播"),</font>
-
-<font style="color:rgb(38, 44, 49);">(69,"释放积分奖励"),</font>
-
+| 来源值 | 说明 |
+| --- | --- |
+| 1 | 积分消费 |
+| 2 | 推广积分 |
+| 3 | 首次扫码 |
+| 4 | 购买商品积分 |
+| 5 | 推广积分 |
+| 6 | 商家奖励/扣除 |
+| 7 | 取消关注 |
+| 8 | 积分转换 |
+| 9 | 全返积分转换 |
+| 10 | 分享文章 |
+| 11 | 抽奖获得积分 |
+| 12 | 生日赠送积分 |
+| 13 | 新建积分 |
+| 14 | 产品赠送积分 |
+| 15 | 积分初始化 |
+| 17 | 完善资料 |
+| 18 | 推广海报 |
+| 19 | 推荐下载APP |
+| 20 | 社群海报分享 |
+| 21 | 推荐用户完成公众号登录 |
+| 22 | 公众号登录 |
+| 24 | 拼团活动 |
+| 25 | 内容发布 |
+| 26 | 积分兑换余额 |
+| 27 | 积分兑换余额退回 |
+| 28 | 开放平台添加积分 |
+| 29 | 开放平台扣减积分 |
+| 31 | 活动中心赠送积分 |
+| 32 | 购买有礼赠送积分 |
+| 33 | 奖品中心积分回收 |
+| 34 | 积分过期 |
+| 36 | 兑换优惠券 |
+| 37 | 积分过期 |
+| 40 | 订单转换有礼 |
+| 41 | 进店有礼 |
+| 42 | 会员权益 |
+| 43 | 积分抵现 |
+| 44 | 购买有礼积分回收 |
+| 45 | 邀请观看 |
+| 46 | 预约直播 |
+| 47 | 购买商品 |
+| 48 | 直播间评论 |
+| 49 | 直播间打赏 |
+| 50 | 观看时长 |
+| 51 | 加积分 |
+| 52 | 邀请榜奖励 |
+| 53 | 直播间签到 |
+| 54 | 直播红包 |
+| 55 | 直播观看奖励 |
+| 56 | 直播抽奖 |
+| 57 | 订单退款 |
+| 58 | 直播上榜奖励 |
+| 59 | 抽奖消耗积分 |
+| 60 | 积分参团 |
+| 61 | 观看直播 |
+| 62 | 转发直播 |
+| 63 | 好友看直播 |
+| 64 | 新用户看直播 |
+| 65 | 用户看直播 |
+| 66 | 直播任务 |
+| 67 | 好友预约直播 |
+| 68 | 好友预约直播 |
+| 69 | 释放积分奖励 |
+| 70 | 直播观看奖励 |
 <font style="color:rgb(38, 44, 49);">(70,"直播观看奖励");</font>

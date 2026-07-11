@@ -13,7 +13,9 @@
 | 参数 | 类型 | 必传(Y/N) | 说明 |
 | --- | --- | --- | --- |
 | access_token | String | Y | 授权令牌 |
+
 **返回结果**：
+
 | 参数 | 类型 | 说明 |
 | --- | --- | --- |
 | sjid | LONG | 商家ID |
@@ -25,4 +27,22 @@
 | payCode | String | 支付企业海关编码 |
 | accountNo | String |  |
 | accoutName | String |  |
-### 确响应示例## 误响应示例
+
+### 正确响应示例
+
+```json
+{
+  "response": {}
+}
+```
+
+### 错误响应示例
+
+```json
+{
+  "error_response": {
+    "code": "101",
+    "msg": ""
+  }
+}
+```

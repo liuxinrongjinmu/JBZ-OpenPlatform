@@ -74,7 +74,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* 表格本身：自动列宽 */
+/* 表格本身：自动列宽，但防止被单个大单元格撑破 */
 .vp-doc table {
   table-layout: auto !important;
   width: 100% !important;
@@ -110,6 +110,34 @@
   word-break: normal !important;
   overflow-wrap: break-word !important;
   color: var(--vp-c-text-2) !important;
+}
+
+/* 列宽策略：防止前几列过宽挤压最后一列说明列 */
+.vp-doc table th:first-child,
+.vp-doc table td:first-child {
+  max-width: 220px !important;
+  width: auto !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* 中间列（类型/示例/必传等）：允许自然换行，限制最大宽度 */
+.vp-doc table th:not(:first-child):not(:last-child),
+.vp-doc table td:not(:first-child):not(:last-child) {
+  max-width: 220px !important;
+  width: auto !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+/* 最后一列（说明）：优先占用剩余空间，确保可读性 */
+.vp-doc table th:last-child,
+.vp-doc table td:last-child {
+  min-width: 300px !important;
+  width: 100% !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
 }
 
 /* 表格斑马纹（隔行换色） */
@@ -150,14 +178,6 @@
    ========================================== */
 .vp-doc .header-anchor {
   display: none !important;
-}
-
-/* ==========================================
-   保留表格参数列中的前导空格，使嵌套层级可见
-   ========================================== */
-.vp-doc table td:nth-child(2),
-.vp-doc table th:nth-child(2) {
-  white-space: pre-wrap !important;
 }
 
 /* ==========================================

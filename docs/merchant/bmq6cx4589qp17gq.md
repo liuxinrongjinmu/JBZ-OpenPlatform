@@ -76,11 +76,3 @@ UserCardQueryVO
   "pages": 0
 }
 ```
-
-{
-  "error_response": {
-    "code": 902,
-    "message": "调用失败"
-  }
-}
-```

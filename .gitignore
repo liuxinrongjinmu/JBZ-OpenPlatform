@@ -7,13 +7,8 @@ data/
 __pycache__/
 .DS_Store
 
-# 备份目录
-.backup_*/
-.backup_before_reconstruct/
-
-# 测试文件
-admin/client/test.html
-admin/client/test2.html
+# 历史遗留目录
+docs-management/
 
 # IDE 配置
 .trae/

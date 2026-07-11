@@ -2,9 +2,7 @@
  * 构建触发 API (SSE 流式推送)
  */
 import { Router } from 'express'
-import { spawn } from 'node:child_process'
-import { execSync } from 'node:child_process'
-import fs from 'node:fs'
+import { spawn, execSync } from 'node:child_process'
 import path from 'node:path'
 
 const router = Router()

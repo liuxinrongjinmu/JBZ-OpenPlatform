@@ -2,6 +2,8 @@
 
 ---
 
+### 参数说明
+
 | 参数 | 类型 | 是否必传 | 说明 |
 | --- | --- | --- | --- |
 | numIid | Number | Y | 商品id |
@@ -12,14 +14,18 @@
 | endTime | LocalDateTime | Y | 评价结束时间 |
 | pageNo | Number | Y | 分页号（最大不过500） |
 | pageSize | Number | Y | 分页大小（最大不过100） |
+
 info（如果不传分组ID和分组名称，返回所有分组）
 
 ### 返回结果
+
 | 参数 | 类型 | 是否必传 | 说明 |
 | --- | --- | --- | --- |
 | totalResults | Number | Y | 总条数 |
 | items | List&lt;GoodsEvaluation&gt; | Y | 商品评价信息 |
-### GoodsGroup
+
+### GoodsEvaluation基本信息
+
 | 参数 | 类型 | 是否必传 | 说明 |
 | --- | --- | --- | --- |
 | goodsName | String | Y | 总条数 |
@@ -38,13 +44,17 @@ info（如果不传分组ID和分组名称，返回所有分组）
 | praiseNum | Number | Y | 真实点赞量 |
 | auditFailRemark | String | Y | 备注 |
 | displayStatus | Number | Y | 评价展示状态;不展示=0,展示=1 |
-ReviewContentVO信息
+
+### ReviewContentVO信息
+
 | 参数 | 类型 | 是否必传 | 说明 |
 | --- | --- | --- | --- |
 | contentText | String | Y | 评价内容 |
 | contentImg | List&lt;String&gt; | Y | 评价图片 |
 | contentVideo | List&lt;String&gt; | Y | 评价视频 |
-ReviewReplyDTO信息
+
+### ReviewReplyDTO信息
+
 | 参数 | 类型 | 是否必传 | 说明 |
 | --- | --- | --- | --- |
 | contentText | String | Y | 回复内容 |

@@ -16,11 +16,15 @@
 | --- | --- | --- | --- |
 | access_token | String | Y | 授权令牌 |
 | tidList | List&lt;String&gt; | Y | 订单集合 |
+
 **返回结果**：
+
 | 参数 | 类型 | 必传(Y/N) | 说明 |
 | --- | --- | --- | --- |
 | List&lt;WriteOffListVO&gt; | WriteOffListVO | Y | 订单核销列表 |
+
 ### WriteOffListVO
+
 | 参数 | 类型 | 必传(Y/N) | 说明 |
 | --- | --- | --- | --- |
 | sjid | Long | Y | 商家ID |
