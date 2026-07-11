@@ -1,18 +1,56 @@
 <script setup lang="ts">
 /**
  * AIChat - 聚宝赞开放平台智能问答助手
- * 浮动AI机器人图标 + 弹出对话框，支持DeepSeek流式对话
+ * 支持文档索引注入、流式对话、预设问题、XSS 防护
  */
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import MarkdownIt from 'markdown-it'
 
+// ──────────────────────────── 类型定义 ────────────────────────────
+
 interface Message {
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' | 'assistant'
   content: string
 }
 
-// 最大保留的对话轮数（用户+助手算1轮），超出时截断旧消息以控制 token 用量
+interface DocEntry {
+  title: string
+  path: string
+  category: string
+}
+
+// ──────────────────────────── 常量 ────────────────────────────
+
 const MAX_CONTEXT_ROUNDS = 10
+
+const PRESET_QUESTIONS = [
+  { label: '如何获取 access_token？', question: '如何获取 access_token？请给出具体的接口地址和参数说明。' },
+  { label: '商品上架接口参数', question: '商品上架接口有哪些参数？' },
+  { label: '订单发货怎么调用', question: '订单发货接口怎么调用？需要传哪些参数？' },
+  { label: '创建会员接口说明', question: '如何创建会员？接口地址和参数是什么？' },
+  { label: '查询订单列表', question: '如何查询订单列表？请给出接口说明。' },
+]
+
+// 备用 System Prompt（文档索引未加载时使用）
+const FALLBACK_SYSTEM_PROMPT = `你是"聚宝赞开放平台"的AI技术助手，精通本平台的全部API接口。
+
+## 平台概述
+聚宝赞开放平台为商家版和供应商版提供以下API能力：
+- **商家版**：第三方ERP接入、会员管理、商品管理、订单管理、门店管理、消息推送、数据统计
+- **供应商版**：商品同步、订单同步、售后发货、消息订阅
+
+## 接口调用规范
+- 请求地址：https://api.c3tech.cn/oauthentry/...
+- 认证方式：基于OAuth 2.0的access_token
+- 请求方式：GET/POST
+- 响应格式：JSON
+
+回答时请：
+1. 优先使用中文，回答简洁准确
+2. 给出具体的接口名称、参数说明
+3. 如有不确定，明确告知`
+
+// ──────────────────────────── 响应式状态 ────────────────────────────
 
 const isOpen = ref(false)
 const input = ref('')
@@ -24,31 +62,38 @@ const messages = ref<Message[]>([
 ])
 const isLoading = ref(false)
 const messagesEl = ref<HTMLElement | null>(null)
+const docIndex = ref<DocEntry[]>([])
+const abortController = ref<AbortController | null>(null)
 
-// 系统提示词：定义AI角色和文档上下文
-const SYSTEM_PROMPT = `你是"聚宝赞开放平台"的AI技术助手，精通本平台的全部API接口。
+// ──────────────────────────── 文档索引加载 ────────────────────────────
+
+onMounted(async () => {
+  try {
+    const resp = await fetch('/doc-index.json')
+    if (resp.ok) {
+      docIndex.value = await resp.json()
+      console.log(`[AIChat] 文档索引已加载: ${docIndex.value.length} 篇`)
+    }
+  } catch (err) {
+    console.warn('[AIChat] 文档索引加载失败，使用备用提示词:', err)
+  }
+})
+
+// ──────────────────────────── System Prompt 构建 ────────────────────────────
+
+const buildSystemPrompt = (): string => {
+  if (docIndex.value.length === 0) return FALLBACK_SYSTEM_PROMPT
+
+  const merchantDocs = docIndex.value.filter((d) => d.category === '商家版')
+  const supplierDocs = docIndex.value.filter((d) => d.category === '供应商版')
+
+  const formatList = (docs: DocEntry[]) =>
+    docs.map((d) => `${d.title} → ${d.path}`).join('\n')
+
+  return `你是"聚宝赞开放平台"的AI技术助手，精通本平台的全部API接口。
 
 ## 平台概述
-聚宝赞开放平台为商家版和供应商版提供以下能力：
-- **开放平台商家版（160篇文档）**：第三方ERP接入、会员管理、商品管理、订单管理、门店管理、消息推送、数据统计
-- **供应商开放平台（56篇文档）**：商品同步、订单同步、售后发货、消息订阅
-
-## 核心接口类别
-
-### 商家版
-- 接入指南：ERP对接、APP对接、H5直播间嵌入
-- 通用接口：店铺信息、省市区、商品类目、订单类型、支付渠道
-- 会员信息：会员查询、会员等级、会员手机号
-- 商品接口：商品CRUD、SKU管理、商品上下架
-- 订单接口：订单查询、发货、退款、售后、核销
-- 营销接口：优惠券、积分、第三方会员同步
-- 门店管理：门店CRUD、店员、片区、客户归属
-- 积分管理：积分查询、积分充值、积分扣减
-- 消息推送：订阅消息、订单消息、会员消息
-
-### 供应商版
-- 接入须知、商品同步、订单同步、售后发货
-- 接口列表、消息订阅、消息事件参数
+聚宝赞开放平台为商家版（${merchantDocs.length}篇文档）和供应商版（${supplierDocs.length}篇文档）提供完整的API接入能力，涵盖商品管理、订单管理、会员管理、门店管理、消息推送、积分营销等场景。
 
 ## 接口调用规范
 - 请求地址：https://api.c3tech.cn/oauthentry/...
@@ -56,11 +101,23 @@ const SYSTEM_PROMPT = `你是"聚宝赞开放平台"的AI技术助手，精通�
 - 请求方式：GET/POST
 - 响应格式：JSON
 
-回答时请：
-1. 优先使用中文
-2. 结合上述平台知识回答
-3. 给出具体的接口名称、参数说明、调用示例
-4. 如有不确定，明确告知`
+## 可用文档索引
+回答用户问题时，请引用下述文档路径作为答案来源。格式：文档标题 → 可点击路径。
+
+### 商家版文档
+${formatList(merchantDocs)}
+
+### 供应商版文档
+${formatList(supplierDocs)}
+
+## 回答要求
+1. 优先引用上述文档索引中的文档路径，如 /merchant/xxx 或 /supplier/xxx
+2. 给出具体的接口名称、参数说明、调用示例
+3. 回答简洁准确，优先使用中文
+4. 如有不确定的内容，明确告知用户并建议查阅具体文档`
+}
+
+// ──────────────────────────── 工具函数 ────────────────────────────
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -69,47 +126,64 @@ const scrollToBottom = async () => {
   }
 }
 
-const sendMessage = async () => {
-  const text = input.value.trim()
+// ──────────────────────────── 核心：发送消息 ────────────────────────────
+
+const sendMessage = async (presetText?: string) => {
+  const text = (presetText || input.value).trim()
   if (!text || isLoading.value) return
 
-  // 添加用户消息
-  messages.value.push({ role: 'user', content: text })
   input.value = ''
   isLoading.value = true
-  scrollToBottom()
+
+  // 🔧 修复：先捕获当前历史（不含欢迎语），再 push 新消息
+  const contextHistory = messages.value
+    .filter((m) => {
+      // 跳过欢迎消息，避免作为上下文发送
+      if (m.role === 'assistant' && m.content.startsWith('你好！') && m === messages.value[0]) {
+        return false
+      }
+      return true
+    })
+    .slice(-MAX_CONTEXT_ROUNDS * 2)
+
+  // 添加用户消息到界面
+  messages.value.push({ role: 'user', content: text })
 
   // 添加助手占位消息
   const assistantMsg: Message = { role: 'assistant', content: '' }
   messages.value.push(assistantMsg)
   scrollToBottom()
 
+  // 创建中止控制器
+  const controller = new AbortController()
+  abortController.value = controller
+
   try {
-    // 调用后端代理接口（生产环境走nginx，开发环境走vite proxy）
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          // 截取最近 MAX_CONTEXT_ROUNDS 轮对话，避免 token 超限
-          ...messages.value
-            .slice(0, -1)
-            .filter((m) => m.role !== 'system')
-            .slice(-MAX_CONTEXT_ROUNDS * 2)
-            .map((m) => ({ role: m.role, content: m.content })),
+          { role: 'system', content: buildSystemPrompt() },
+          ...contextHistory.map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content: text },
         ],
         stream: true,
-        temperature: 0.7,
+        // 🔧 降低 temperature 从 0.7 到 0.2，减少幻觉和编造
+        temperature: 0.2,
       }),
+      signal: controller.signal,
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      if (response.status === 401) {
+        throw new Error('AI服务认证失败，请联系管理员检查 API Key 配置')
+      }
+      throw new Error(`请求失败 (${response.status})，请稍后重试`)
     }
 
-    // 解析SSE流式响应
+    // 解析 SSE 流式响应
     const reader = response.body?.getReader()
     if (!reader) throw new Error('无法获取响应流')
 
@@ -143,13 +217,28 @@ const sendMessage = async () => {
       }
     }
   } catch (err: any) {
-    assistantMsg.content = `❌ 出错了：${err.message || '网络请求失败'}\n\n请检查网络或联系管理员。`
-    console.error('[AIChat] 请求失败:', err)
+    if (err.name === 'AbortError') {
+      assistantMsg.content += '\n\n_已停止生成。_'
+    } else {
+      assistantMsg.content = `出错了：${err.message || '网络请求失败'}\n\n请检查网络或联系管理员。`
+      console.error('[AIChat] 请求失败:', err)
+    }
   } finally {
     isLoading.value = false
+    abortController.value = null
     scrollToBottom()
   }
 }
+
+// ──────────────────────────── 停止生成 ────────────────────────────
+
+const stopGeneration = () => {
+  if (abortController.value) {
+    abortController.value.abort()
+  }
+}
+
+// ──────────────────────────── 键盘事件 ────────────────────────────
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -157,6 +246,8 @@ const handleKeydown = (e: KeyboardEvent) => {
     sendMessage()
   }
 }
+
+// ──────────────────────────── 清空对话 ────────────────────────────
 
 const clearHistory = () => {
   messages.value = [
@@ -200,24 +291,14 @@ const clearHistory = () => {
           </div>
         </div>
         <div class="ai-chat-actions">
-          <button
-            class="ai-chat-icon-btn"
-            title="清空对话"
-            aria-label="清空对话"
-            @click="clearHistory"
-          >
+          <button class="ai-chat-icon-btn" title="清空对话" aria-label="清空对话" @click="clearHistory">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path
-                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
               />
             </svg>
           </button>
-          <button
-            class="ai-chat-icon-btn"
-            title="关闭"
-            aria-label="关闭对话框"
-            @click="isOpen = false"
-          >
+          <button class="ai-chat-icon-btn" title="关闭" aria-label="关闭对话框" @click="isOpen = false">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path
                 d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
@@ -226,6 +307,19 @@ const clearHistory = () => {
           </button>
         </div>
       </header>
+
+      <!-- 预设快捷问题 -->
+      <div class="ai-chat-presets">
+        <button
+          v-for="q in PRESET_QUESTIONS"
+          :key="q.label"
+          class="ai-chat-preset-btn"
+          :disabled="isLoading"
+          @click="sendMessage(q.question)"
+        >
+          {{ q.label }}
+        </button>
+      </div>
 
       <div ref="messagesEl" class="ai-chat-messages">
         <div
@@ -252,11 +346,15 @@ const clearHistory = () => {
           @keydown="handleKeydown"
         ></textarea>
         <button
+          v-if="!isLoading"
           class="ai-chat-send"
-          :disabled="!input.trim() || isLoading"
-          @click="sendMessage"
+          :disabled="!input.trim()"
+          @click="sendMessage()"
         >
           发送
+        </button>
+        <button v-else class="ai-chat-stop" @click="stopGeneration">
+          停止
         </button>
       </footer>
     </div>
@@ -264,13 +362,42 @@ const clearHistory = () => {
 </template>
 
 <script lang="ts">
-// 使用 markdown-it 进行完整 Markdown 渲染（标题/列表/表格/代码块/链接/加粗等）
+// ──────────────────── Markdown 渲染（含 XSS 防护）────────────────────
+
+import MarkdownIt from 'markdown-it'
+
 const md = new MarkdownIt({
   html: false,
   breaks: true,
   linkify: true,
   typographer: true,
 })
+
+// 🔧 XSS 防护：自定义链接渲染规则，仅放行安全协议和平台内部路径
+md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
+  const token = tokens[idx]
+  const href = token.attrGet('href')
+  if (href) {
+    if (
+      href.startsWith('https://') ||
+      href.startsWith('http://') ||
+      href.startsWith('/merchant/') ||
+      href.startsWith('/supplier/') ||
+      href.startsWith('#') ||
+      href.startsWith('mailto:')
+    ) {
+      // 外部链接新标签页打开
+      if (href.startsWith('http')) {
+        token.attrSet('target', '_blank')
+        token.attrSet('rel', 'noopener noreferrer')
+      }
+    } else {
+      // 移除危险协议（javascript: / data: 等）
+      token.attrSet('href', '#')
+    }
+  }
+  return self.renderToken(tokens, idx, options)
+}
 
 // 渲染函数：将 Markdown 文本转为安全 HTML
 const formatMsg = (content: string) => {
@@ -289,7 +416,7 @@ export default { name: 'AIChat' }
   font-family: var(--vp-font-family-base);
 }
 
-/* 浮动按钮 */
+/* ── 浮动按钮 ── */
 .ai-chat-trigger {
   position: relative;
   width: 56px;
@@ -322,10 +449,10 @@ export default { name: 'AIChat' }
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-/* 对话框 */
+/* ── 对话框容器 ── */
 .ai-chat-panel {
-  width: 380px;
-  height: 560px;
+  width: 400px;
+  height: 620px;
   max-height: calc(100vh - 48px);
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
@@ -337,6 +464,7 @@ export default { name: 'AIChat' }
   border: 1px solid var(--vp-c-divider);
 }
 
+/* ── 头部 ── */
 .ai-chat-header {
   display: flex;
   align-items: center;
@@ -344,6 +472,7 @@ export default { name: 'AIChat' }
   padding: 12px 16px;
   background: linear-gradient(135deg, #4f8cff 0%, #2667ff 100%);
   color: #fff;
+  flex-shrink: 0;
 }
 .ai-chat-title {
   display: flex;
@@ -402,10 +531,42 @@ export default { name: 'AIChat' }
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* ── 预设快捷问题 ── */
+.ai-chat-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  flex-shrink: 0;
+}
+.ai-chat-preset-btn {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s, background 0.2s;
+  line-height: 1.4;
+}
+.ai-chat-preset-btn:hover:not(:disabled) {
+  border-color: #4f8cff;
+  background: rgba(79, 140, 255, 0.06);
+}
+.ai-chat-preset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── 消息区 ── */
 .ai-chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -417,7 +578,7 @@ export default { name: 'AIChat' }
 .ai-chat-msg-user { justify-content: flex-end; }
 .ai-chat-msg-assistant { justify-content: flex-start; }
 .ai-chat-bubble {
-  max-width: 80%;
+  max-width: 85%;
   padding: 8px 12px;
   border-radius: 12px;
   font-size: 13px;
@@ -455,7 +616,6 @@ export default { name: 'AIChat' }
 .ai-chat-bubble :deep(strong) {
   font-weight: 600;
 }
-/* markdown-it 渲染的额外元素样式 */
 .ai-chat-bubble :deep(h1),
 .ai-chat-bubble :deep(h2),
 .ai-chat-bubble :deep(h3),
@@ -514,7 +674,7 @@ export default { name: 'AIChat' }
   margin: 8px 0;
 }
 
-/* 打字指示器 */
+/* ── 打字指示器 ── */
 .ai-chat-typing {
   display: flex;
   gap: 4px;
@@ -535,6 +695,7 @@ export default { name: 'AIChat' }
   30% { opacity: 1; transform: translateY(-4px); }
 }
 
+/* ── 输入区 ── */
 .ai-chat-footer {
   border-top: 1px solid var(--vp-c-divider);
   padding: 12px;
@@ -542,6 +703,7 @@ export default { name: 'AIChat' }
   gap: 8px;
   align-items: flex-end;
   background: var(--vp-c-bg-soft);
+  flex-shrink: 0;
 }
 .ai-chat-input {
   flex: 1;
@@ -571,6 +733,7 @@ export default { name: 'AIChat' }
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 .ai-chat-send:hover:not(:disabled) {
   background: #1e54d6;
@@ -579,18 +742,42 @@ export default { name: 'AIChat' }
   background: var(--vp-c-text-3);
   cursor: not-allowed;
 }
+.ai-chat-stop {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.ai-chat-stop:hover {
+  background: #dc2626;
+}
 
-/* 滚动条 */
+/* ── 滚动条 ── */
 .ai-chat-messages::-webkit-scrollbar { width: 6px; }
 .ai-chat-messages::-webkit-scrollbar-thumb { background: var(--vp-c-divider); border-radius: 3px; }
 .ai-chat-messages::-webkit-scrollbar-track { background: transparent; }
 
-/* 移动端响应式 */
+/* ── 移动端 ── */
 @media (max-width: 480px) {
   .ai-chat-widget { right: 12px; bottom: 12px; }
   .ai-chat-panel {
     width: calc(100vw - 24px);
     height: calc(100vh - 100px);
+  }
+  .ai-chat-presets {
+    gap: 4px;
+    padding: 8px 10px;
+  }
+  .ai-chat-preset-btn {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
 </style>

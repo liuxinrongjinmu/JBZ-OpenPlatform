@@ -8,6 +8,7 @@ RUN apk add --no-cache git
 COPY package.json package-lock.json ./
 RUN npm ci
 
+COPY tools/ tools/
 COPY docs/ docs/
 RUN npm run docs:build
 
