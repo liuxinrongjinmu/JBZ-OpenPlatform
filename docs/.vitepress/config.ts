@@ -77,7 +77,6 @@ export default defineConfig({
       },
     },
     footer: {
-      message: '基于语雀平台迁移',
       copyright: 'Copyright © 2024 长沙市希尚网络科技有限公司',
     },
     outline: {
