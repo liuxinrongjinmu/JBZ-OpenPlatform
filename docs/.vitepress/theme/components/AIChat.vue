@@ -73,24 +73,56 @@ onMounted(async () => {
     if (resp.ok) {
       docIndex.value = await resp.json()
       console.log(`[AIChat] 文档索引已加载: ${docIndex.value.length} 篇`)
+
+      // 🔧 链接验证：更新 markdown-it 渲染器，标注文档链接有效性
+      setupLinkValidation()
     }
   } catch (err) {
     console.warn('[AIChat] 文档索引加载失败，使用备用提示词:', err)
   }
 })
 
+// ──────────────────────────── 链接验证 ────────────────────────────
+
+/** 替换 markdown-it 链接渲染器，增加文档路径有效性检查和 CSS 标注 */
+const setupLinkValidation = () => {
+  const originalRule = md.renderer.rules.link_open
+  if (!originalRule) return
+
+  md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
+    const token = tokens[idx]
+    const href = token.attrGet('href')
+    if (href && (href.startsWith('/merchant/') || href.startsWith('/supplier/'))) {
+      const exists = docIndex.value.some((d) => d.path === href)
+      const existingClass = token.attrGet('class') || ''
+      token.attrSet('class', (existingClass + ' ' + (exists ? 'doc-link-verified' : 'doc-link-unverified')).trim())
+    }
+    return originalRule(tokens, idx, options, _env, self)
+  }
+}
+
+// ──────────────────────────── 当前页面上下文 ────────────────────────────
+
+/** 根据当前 URL 路径获取对应文档摘要 */
+const getCurrentPageDoc = (): DocEntry | null => {
+  const pathname = window.location.pathname
+  // 匹配路径如 /merchant/xxx 或 /supplier/xxx（排除 index）
+  const match = pathname.match(/^\/(merchant|supplier)\/([a-z0-9]+)/)
+  if (!match) return null
+  const fullPath = `/${match[1]}/${match[2]}`
+  return docIndex.value.find((d) => d.path === fullPath) || null
+}
+
 // ──────────────────────────── System Prompt 构建 ────────────────────────────
 
 const buildSystemPrompt = (): string => {
-  if (docIndex.value.length === 0) return FALLBACK_SYSTEM_PROMPT
-
   const merchantDocs = docIndex.value.filter((d) => d.category === '商家版')
   const supplierDocs = docIndex.value.filter((d) => d.category === '供应商版')
 
   const formatList = (docs: DocEntry[]) =>
     docs.map((d) => `${d.title} → ${d.path}`).join('\n')
 
-  return `你是"聚宝赞开放平台"的AI技术助手，精通本平台的全部API接口。
+  let prompt = docIndex.value.length === 0 ? FALLBACK_SYSTEM_PROMPT : `你是"聚宝赞开放平台"的AI技术助手，精通本平台的全部API接口。
 
 ## 平台概述
 聚宝赞开放平台为商家版（${merchantDocs.length}篇文档）和供应商版（${supplierDocs.length}篇文档）提供完整的API接入能力，涵盖商品管理、订单管理、会员管理、门店管理、消息推送、积分营销等场景。
@@ -108,13 +140,21 @@ const buildSystemPrompt = (): string => {
 ${formatList(merchantDocs)}
 
 ### 供应商版文档
-${formatList(supplierDocs)}
+${formatList(supplierDocs)}`
 
-## 回答要求
+  // 🔧 页面上下文感知：注入当前浏览页面信息
+  const currentDoc = getCurrentPageDoc()
+  if (currentDoc) {
+    prompt += `\n\n## 用户当前浏览页面\n用户正在查看《${currentDoc.title}》(${currentDoc.path})。回答时可优先结合该文档内容，或直接引用该文档路径。`
+  }
+
+  prompt += `\n\n## 回答要求
 1. 优先引用上述文档索引中的文档路径，如 /merchant/xxx 或 /supplier/xxx
 2. 给出具体的接口名称、参数说明、调用示例
 3. 回答简洁准确，优先使用中文
 4. 如有不确定的内容，明确告知用户并建议查阅具体文档`
+
+  return prompt
 }
 
 // ──────────────────────────── 工具函数 ────────────────────────────
@@ -658,6 +698,24 @@ export default { name: 'AIChat' }
 }
 .ai-chat-bubble :deep(a:hover) {
   text-decoration: underline;
+}
+
+/* 文档链接验证状态 */
+.ai-chat-bubble :deep(a.doc-link-verified) {
+  color: #22c55e;
+}
+.ai-chat-bubble :deep(a.doc-link-verified::after) {
+  content: ' ✓';
+  font-size: 10px;
+  opacity: 0.7;
+}
+.ai-chat-bubble :deep(a.doc-link-unverified) {
+  color: #f59e0b;
+  text-decoration: line-through;
+}
+.ai-chat-bubble :deep(a.doc-link-unverified::after) {
+  content: ' ⚠';
+  font-size: 10px;
 }
 .ai-chat-bubble :deep(blockquote) {
   border-left: 3px solid var(--vp-c-divider);

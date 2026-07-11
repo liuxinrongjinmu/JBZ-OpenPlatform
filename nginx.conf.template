@@ -65,18 +65,14 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
-    # AI 聊天代理：保护 API Key 不暴露到前端
-    # 将 /api/chat 请求代理到 DeepSeek，注入 Authorization 头
+    # AI 聊天代理：转发到 Express RAG 后端（文档检索 + AI 串联）
     location /api/chat {
-        # API Key 通过环境变量 DEEPSEEK_API_KEY 注入
-        set $api_key $DEEPSEEK_API_KEY;
-
-        proxy_pass https://api.deepseek.com/v1/chat/completions;
-        proxy_ssl_server_name on;
-        proxy_set_header Host api.deepseek.com;
-        proxy_set_header Authorization "Bearer $api_key";
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Content-Type "application/json";
-        proxy_set_header Accept "text/event-stream";
 
         # 流式响应支持（SSE）
         proxy_buffering off;

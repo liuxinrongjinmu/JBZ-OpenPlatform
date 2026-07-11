@@ -14,10 +14,22 @@ import documentsRouter from './routes/documents.js'
 import sidebarRouter from './routes/sidebar.js'
 import imagesRouter from './routes/images.js'
 import buildRouter from './routes/build.js'
+import chatRouter from './routes/chat.js'
+import searchService from './services/searchService.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.ADMIN_PORT || 3001
+
+// --- 构建全文检索索引 ---
+const docsDir = path.resolve(process.cwd(), 'docs')
+console.log(`[Admin] 构建文档索引: ${docsDir}`)
+try {
+  searchService.buildIndex(docsDir)
+  console.log(`[Admin] 索引构建完成:`, searchService.stats())
+} catch (err) {
+  console.error('[Admin] 索引构建失败:', err.message)
+}
 
 // --- 会话持久化目录 ---
 const sessionsDir = path.resolve(process.cwd(), 'data/sessions')
@@ -60,6 +72,9 @@ app.use(
 // --- 公开路由（无需认证） ---
 app.post('/api/admin/login', handleLogin)
 app.get('/api/admin/check', checkAuth)
+
+// RAG 聊天代理（公开，无需认证）
+app.use('/api/chat', chatRouter)
 
 // --- 认证保护的路由 ---
 app.use('/api/admin/documents', authMiddleware, documentsRouter)
