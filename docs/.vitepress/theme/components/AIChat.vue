@@ -142,12 +142,6 @@ ${formatList(merchantDocs)}
 ### 供应商版文档
 ${formatList(supplierDocs)}`
 
-  // 🔧 页面上下文感知：注入当前浏览页面信息
-  const currentDoc = getCurrentPageDoc()
-  if (currentDoc) {
-    prompt += `\n\n## 用户当前浏览页面\n用户正在查看《${currentDoc.title}》(${currentDoc.path})。回答时可优先结合该文档内容，或直接引用该文档路径。`
-  }
-
   prompt += `\n\n## 回答要求
 1. 优先引用上述文档索引中的文档路径，如 /merchant/xxx 或 /supplier/xxx
 2. 给出具体的接口名称、参数说明、调用示例
@@ -212,6 +206,8 @@ const sendMessage = async (presetText?: string) => {
         stream: true,
         // 🔧 降低 temperature 从 0.7 到 0.2，减少幻觉和编造
         temperature: 0.2,
+        // 🔧 页面上下文感知：告诉后端用户正在看哪个文档页面
+        currentPage: getCurrentPageDoc()?.path || null,
       }),
       signal: controller.signal,
     })

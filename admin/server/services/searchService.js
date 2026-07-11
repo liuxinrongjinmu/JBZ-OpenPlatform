@@ -87,6 +87,8 @@ class SearchService {
     this.docFreq = new Map()
     this.totalDocs = 0
     this._built = false
+    /** @type {string|null} */
+    this.docsDir = null
   }
 
   /**
@@ -94,6 +96,7 @@ class SearchService {
    * @param {string} docsDir - docs/ 根目录路径
    */
   buildIndex(docsDir) {
+    this.docsDir = docsDir
     const dirs = [
       { dir: path.join(docsDir, 'merchant'), prefix: '/merchant' },
       { dir: path.join(docsDir, 'supplier'), prefix: '/supplier' },
@@ -157,6 +160,21 @@ class SearchService {
     }
 
     this._built = true
+  }
+
+  /**
+   * 根据文档路径加载完整 Markdown 内容
+   * @param {string} docPath - 如 /merchant/zoa2160ve680z3rh
+   * @returns {string|null}
+   */
+  loadDocumentContent(docPath) {
+    if (!this.docsDir || !docPath) return null
+    const parts = docPath.split('/').filter(Boolean)
+    if (parts.length < 2) return null
+    const [dir, file] = parts
+    const filePath = path.join(this.docsDir, dir, `${file}.md`)
+    if (!fs.existsSync(filePath)) return null
+    return fs.readFileSync(filePath, 'utf-8')
   }
 
   /**
