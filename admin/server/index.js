@@ -73,6 +73,21 @@ app.use(
   })
 )
 
+// --- 文档站点静态文件（开发环境直接访问 admin server 时使用）---
+const docsDistDir = path.resolve(process.cwd(), 'docs/.vitepress/dist')
+if (fs.existsSync(docsDistDir)) {
+  app.use('/', express.static(docsDistDir, { extensions: ['html'] }))
+  // VitePress cleanUrls 兼容：/xxx → /xxx.html
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+    const htmlPath = path.join(docsDistDir, req.path + '.html')
+    if (fs.existsSync(htmlPath) && fs.statSync(htmlPath).isFile()) {
+      return res.sendFile(htmlPath)
+    }
+    next()
+  })
+}
+
 // --- 公开路由（无需认证） ---
 app.post('/api/admin/login', handleLogin)
 app.get('/api/admin/check', checkAuth)

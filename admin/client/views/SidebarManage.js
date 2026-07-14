@@ -31,8 +31,16 @@ export default {
             <input v-model="modalForm.text" placeholder="例如：接口列表"
                    style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;" />
           </div>
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">链接 (可选，格式: /dir/docid.md)</label>
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">关联文档</label>
+            <select v-model="modalDocId" @change="onDocSelect"
+                    style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;background:#fff;">
+              <option value="">不关联文档（仅作为菜单分组）</option>
+              <option v-for="doc of docs" :key="doc.id" :value="doc.id">{{ doc.title }} ({{ doc.id }})</option>
+            </select>
+          </div>
+          <div v-if="!modalDocId" style="margin-bottom:16px;">
+            <label style="display:block;font-size:13px;font-weight:500;margin-bottom:4px;">自定义链接（可选）</label>
             <input v-model="modalForm.link" placeholder="例如：/merchant/xxx.md"
                    style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;" />
           </div>
@@ -54,6 +62,8 @@ export default {
       modalAction: null, // 'add-root' | 'add-child' | 'edit'
       modalParentId: null,
       modalNodeId: null,
+      docs: [],
+      modalDocId: '',
     }
   },
   async mounted() {
@@ -72,11 +82,37 @@ export default {
       }
     },
 
+    async loadDocs() {
+      try {
+        const result = await api.getDocuments({ dir: this.dir, page: '1', size: '1000' })
+        this.docs = result.items || []
+      } catch (err) {
+        console.error(err)
+      }
+    },
+
+    docLink(docId) {
+      return `/${this.dir}/${docId}.md`
+    },
+
+    parseDocId(link) {
+      const match = String(link).match(new RegExp(`^/${this.dir}/([^/]+)\\.md$`))
+      return match ? match[1] : ''
+    },
+
+    onDocSelect() {
+      if (this.modalDocId) {
+        this.modalForm.link = this.docLink(this.modalDocId)
+      }
+    },
+
     // 新增根节点
     addRootNode() {
       this.modalTitle = '新增根节点'
       this.modalForm = { text: '', link: '' }
+      this.modalDocId = ''
       this.modalAction = 'add-root'
+      this.loadDocs()
       this.showModal = true
     },
 
@@ -84,8 +120,10 @@ export default {
     editNode(node) {
       this.modalTitle = '编辑节点'
       this.modalForm = { text: node.text, link: node.link || '' }
+      this.modalDocId = this.parseDocId(node.link)
       this.modalAction = 'edit'
       this.modalNodeId = node.id
+      this.loadDocs()
       this.showModal = true
     },
 
@@ -102,8 +140,10 @@ export default {
     addChildNode(parentId) {
       this.modalTitle = '新增子节点'
       this.modalForm = { text: '', link: '' }
+      this.modalDocId = ''
       this.modalAction = 'add-child'
       this.modalParentId = parentId
+      this.loadDocs()
       this.showModal = true
     },
 
@@ -112,6 +152,11 @@ export default {
       if (!this.modalForm.text.trim()) {
         alert('请输入节点名称')
         return
+      }
+      if (this.modalDocId) {
+        this.modalForm.link = this.docLink(this.modalDocId)
+      } else if (!this.modalForm.link) {
+        this.modalForm.link = ''
       }
       try {
         if (this.modalAction === 'add-root') {

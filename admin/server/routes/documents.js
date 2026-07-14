@@ -14,6 +14,7 @@ import { execSync } from 'node:child_process'
 const router = Router()
 
 const VALID_DIRS = ['merchant', 'supplier']
+const ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 const MAX_SEARCH_LEN = 100
 const MAX_TITLE_LEN = 200
 const MAX_CONTENT_LEN = 500000  // 500KB 上限
@@ -55,8 +56,8 @@ router.get('/:id', async (req, res, next) => {
     const { dir = 'merchant' } = req.query
     const dirCheck = validateDir(dir)
     if (!dirCheck.valid) return res.status(400).json({ error: 'INVALID_DIR', message: dirCheck.message })
-    if (!/^[a-z0-9]+$/.test(req.params.id)) {
-      return res.status(400).json({ error: 'INVALID_ID' })
+    if (!ID_PATTERN.test(req.params.id)) {
+      return res.status(400).json({ error: 'INVALID_ID', message: '文档ID格式不正确' })
     }
     const doc = await getDocument(dir, req.params.id)
     if (!doc) return res.status(404).json({ error: 'DOC_NOT_FOUND' })
@@ -98,8 +99,8 @@ router.put('/:id', async (req, res, next) => {
     }
     const dirCheck = validateDir(dir)
     if (!dirCheck.valid) return res.status(400).json({ error: 'INVALID_DIR', message: dirCheck.message })
-    if (!/^[a-z0-9]+$/.test(req.params.id)) {
-      return res.status(400).json({ error: 'INVALID_ID' })
+    if (!ID_PATTERN.test(req.params.id)) {
+      return res.status(400).json({ error: 'INVALID_ID', message: '文档ID格式不正确' })
     }
     if (String(title).length > MAX_TITLE_LEN) {
       return res.status(400).json({ error: 'TITLE_TOO_LONG' })
@@ -123,8 +124,8 @@ router.delete('/:id', async (req, res, next) => {
     if (!dir) return res.status(400).json({ error: 'MISSING_FIELDS', message: 'dir 为必填' })
     const dirCheck = validateDir(dir)
     if (!dirCheck.valid) return res.status(400).json({ error: 'INVALID_DIR', message: dirCheck.message })
-    if (!/^[a-z0-9]+$/.test(req.params.id)) {
-      return res.status(400).json({ error: 'INVALID_ID' })
+    if (!ID_PATTERN.test(req.params.id)) {
+      return res.status(400).json({ error: 'INVALID_ID', message: '文档ID格式不正确' })
     }
     await deleteDocument(dir, req.params.id)
     gitCommit(`docs: delete ${req.params.id} (${dir})`)
@@ -140,8 +141,8 @@ router.get('/:id/history', async (req, res, next) => {
     const { dir = 'merchant' } = req.query
     const dirCheck = validateDir(dir)
     if (!dirCheck.valid) return res.status(400).json({ error: 'INVALID_DIR', message: dirCheck.message })
-    if (!/^[a-z0-9]+$/.test(req.params.id)) {
-      return res.status(400).json({ error: 'INVALID_ID' })
+    if (!ID_PATTERN.test(req.params.id)) {
+      return res.status(400).json({ error: 'INVALID_ID', message: '文档ID格式不正确' })
     }
     const filePath = `docs/${dir}/${req.params.id}.md`
     const output = execSync(

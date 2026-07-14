@@ -6,7 +6,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import matter from 'gray-matter'
-import { nanoid } from 'nanoid'
+import { customAlphabet } from 'nanoid'
+
+// 文档 ID 仅使用小写字母+数字，匹配路由校验 /^[a-z0-9]+$/
+const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 12)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DOCS_ROOT = path.resolve(__dirname, '../../../docs')
@@ -81,10 +84,16 @@ export async function getDocument(dir, id) {
   try {
     const raw = await fs.readFile(filePath, 'utf-8')
     const { data, content } = matter(raw)
+    // 优先 YAML frontmatter title，其次 # 标题，最后用 id
+    let title = data.title || ''
+    if (!title) {
+      const match = content.match(/^#\s+(.+)/m)
+      title = match ? match[1].trim() : id
+    }
     return {
       id,
       dir,
-      title: data.title || '',
+      title,
       content: content.trim(),
       frontmatter: data,
       raw,

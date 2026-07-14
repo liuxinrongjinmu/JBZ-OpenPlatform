@@ -78,7 +78,7 @@ export async function parseSidebar(dir) {
   const sidebar = await readFullSidebar()
   const key = `/${dir}/`
   const tree = sidebar[key] || []
-  return addNodeIds(structuredClone ? structuredClone(tree) : JSON.parse(JSON.stringify(tree)), key)
+  return addNodeIds(structuredClone ? structuredClone(tree) : JSON.parse(JSON.stringify(tree)))
 }
 
 /**
