@@ -48,6 +48,10 @@ if (!process.env.SESSION_SECRET) {
   console.log('[Admin] ✅ 使用环境变量中的 SESSION_SECRET')
 }
 
+// --- 信任反向代理（HTTPS 反向代理 → HTTP 容器） ---
+// 读取 X-Forwarded-Proto 判断真实请求协议，以正确设置 secure cookie
+app.set('trust proxy', 1)
+
 // --- 中间件 ---
 app.use(express.json({ limit: '10mb' }))
 app.use(
@@ -62,9 +66,9 @@ app.use(
     }),
     cookie: {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'lax',       // lax 兼容性更好，允许从同站导航携带 cookie
       maxAge: 8 * 60 * 60 * 1000, // 8小时
-      secure: process.env.NODE_ENV === 'production' ? false : false,
+      secure: 'auto',        // 自动：HTTPS 请求设 true，HTTP 请求设 false
     },
   })
 )

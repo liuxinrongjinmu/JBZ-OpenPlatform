@@ -27,8 +27,10 @@ async function request(url, options) {
   }
 
   if (res.status === 401) {
-    var current = window.location.hash
-    window.location.hash = '#/login?redirect=' + encodeURIComponent(current || '#/')
+    if (!window.location.hash.startsWith('#/login')) {
+      var current = window.location.hash || '#/'
+      window.location.hash = '#/login?redirect=' + encodeURIComponent(current)
+    }
     throw new Error('请先登录')
   }
 
@@ -78,7 +80,7 @@ var api = {
     var formData = new FormData()
     formData.append('file', file)
     var res = await fetch('' + BASE + '/images/upload', { method: 'POST', body: formData, credentials: 'same-origin' })
-    if (res.status === 401) window.location.hash = '#/login'
+    if (res.status === 401 && !window.location.hash.startsWith('#/login')) window.location.hash = '#/login'
     if (!res.ok) {
       var data = await res.json().catch(function() { return {} })
       throw new Error(data.message || '上传失败')

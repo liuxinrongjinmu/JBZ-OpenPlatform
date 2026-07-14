@@ -21,9 +21,11 @@ async function request(url, options = {}) {
   }
 
   if (res.status === 401) {
-    // 未登录，跳转登录页
-    const current = window.location.hash
-    window.location.hash = '#/login?redirect=' + encodeURIComponent(current || '#/')
+    // 防止并发 401 导致重定向链嵌套
+    if (!window.location.hash.startsWith('#/login')) {
+      const current = window.location.hash || '#/'
+      window.location.hash = '#/login?redirect=' + encodeURIComponent(current)
+    }
     throw new Error('请先登录')
   }
 
@@ -73,7 +75,7 @@ export const api = {
     const formData = new FormData()
     formData.append('file', file)
     const res = await fetch(`${BASE}/images/upload`, { method: 'POST', body: formData, credentials: 'same-origin' })
-    if (res.status === 401) window.location.hash = '#/login'
+    if (res.status === 401 && !window.location.hash.startsWith('#/login')) window.location.hash = '#/login'
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       throw new Error(data.message || '上传失败')
