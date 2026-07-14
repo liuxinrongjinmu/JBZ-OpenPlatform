@@ -705,6 +705,9 @@ export default {
           "link": "/merchant/pams7afg2mnc0gr1.md"
         }
       ]
+    },
+    {
+      "text": "1.6 金木测试"
     }
   ],
   "/supplier/": [
