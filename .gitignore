@@ -18,3 +18,4 @@ docs-management/
 # Docker 镜像（非源码）
 *.tar
 *.tar.gz
+TAPD任务清单.csv
