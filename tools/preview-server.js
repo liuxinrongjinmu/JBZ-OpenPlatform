@@ -198,5 +198,5 @@ server.listen(PORT, HOST, () => {
   console.log(`[preview] 静态服务: http://localhost:${PORT}/`)
   console.log(`[preview] AI 代理:   /api/chat → DeepSeek`)
   console.log(`[preview] DIST:      ${DIST}`)
-  if (API_KEY) console.log(`[preview] API Key:   ${API_KEY.slice(0, 8)}...`)
+  if (API_KEY) console.log(`[preview] API Key:   已配置`)
 })

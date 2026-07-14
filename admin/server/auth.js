@@ -10,12 +10,16 @@ const MAX_ATTEMPTS = 5
 const LOCK_DURATION = 15 * 60 * 1000 // 15分钟
 
 /**
- * 获取缓存的密码（从环境变量读取后缓存）
+ * 获取管理员密码（从环境变量读取，必须配置）
  */
 let cachedPassword = null
 function getAdminPassword() {
   if (!cachedPassword) {
-    cachedPassword = process.env.ADMIN_PASSWORD || 'admin123'
+    cachedPassword = process.env.ADMIN_PASSWORD
+    if (!cachedPassword) {
+      console.error('[Auth] 致命错误: ADMIN_PASSWORD 环境变量未设置，服务无法启动')
+      process.exit(1)
+    }
   }
   return cachedPassword
 }

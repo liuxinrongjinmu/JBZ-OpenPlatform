@@ -26,7 +26,7 @@ npm run docs:build
 
 ## 管理员后台
 
-访问 `/admin/` 进入管理后台，默认密码 `admin123`（可在 `.env` 中修改 `ADMIN_PASSWORD`）。
+访问 `/admin/` 进入管理后台。
 
 功能：
 - 文档增删改查 + Git 版本历史
@@ -34,14 +34,14 @@ npm run docs:build
 - 图片上传
 - 一键重构建（编辑后同步到网站）
 
-首次使用请复制 `.env.example` 为 `.env` 并配置：
+**首次使用请复制 `.env.example` 为 `.env` 并配置必要的环境变量：**
 
 ```bash
 cp .env.example .env
-# 编辑 .env:
-#   ADMIN_PASSWORD=你的密码
-#   SESSION_SECRET=随机字符串
-#   VITE_DEEPSEEK_API_KEY=sk-xxx (可选，AI助手需要)
+# 编辑 .env（以下三项必须配置）:
+#   ADMIN_PASSWORD=你的强密码
+#   SESSION_SECRET=随机字符串（openssl rand -hex 32）
+#   VITE_DEEPSEEK_API_KEY=sk-xxx (AI助手需要)
 ```
 
 ## 迁移工具

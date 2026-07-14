@@ -12,12 +12,13 @@ services:
       - ./data/sessions:/app/data/sessions
     environment:
       # AI聊天API Key，从 .env 文件读取
-      # 修改 .env 中的 VITE_DEEPSEEK_API_KEY 后需重新构建镜像
       - DEEPSEEK_API_KEY=${VITE_DEEPSEEK_API_KEY:-}
-      # 管理员后台登录密码
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      # 会话加密密钥
-      - SESSION_SECRET=${SESSION_SECRET:-}
+      # 管理员后台登录密码（必填）
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?请先在.env中设置ADMIN_PASSWORD}
+      # 会话加密密钥（必填）
+      - SESSION_SECRET=${SESSION_SECRET:?请先在.env中设置SESSION_SECRET}
+      # 日志级别 (debug | 留空=仅错误)
+      - LOG_LEVEL=${LOG_LEVEL:-}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/health"]
       interval: 30s
