@@ -8,6 +8,7 @@ import {
   createDocument,
   updateDocument,
   deleteDocument,
+  validateContent,
 } from '../services/fileService.js'
 import { execSync } from 'node:child_process'
 
@@ -82,6 +83,15 @@ router.post('/', async (req, res, next) => {
     if (String(content).length > MAX_CONTENT_LEN) {
       return res.status(400).json({ error: 'CONTENT_TOO_LONG', message: `内容不能超过 ${MAX_CONTENT_LEN / 1000}KB` })
     }
+    // 保存前校验：确保内容能通过 VitePress 构建
+    const validation = validateContent(String(content))
+    if (!validation.valid) {
+      return res.status(422).json({
+        error: 'CONTENT_VALIDATION_FAILED',
+        message: '文档内容存在语法问题，无法通过 VitePress 构建，请先修正后再保存',
+        details: validation.errors,
+      })
+    }
     const result = await createDocument(dir, String(title), String(content))
     res.status(201).json(result)
   } catch (err) {
@@ -106,6 +116,15 @@ router.put('/:id', async (req, res, next) => {
     }
     if (typeof content === 'string' && content.length > MAX_CONTENT_LEN) {
       return res.status(400).json({ error: 'CONTENT_TOO_LONG' })
+    }
+    // 保存前校验：确保内容能通过 VitePress 构建
+    const validation = validateContent(String(content))
+    if (!validation.valid) {
+      return res.status(422).json({
+        error: 'CONTENT_VALIDATION_FAILED',
+        message: '文档内容存在语法问题，无法通过 VitePress 构建，请先修正后再保存',
+        details: validation.errors,
+      })
     }
     const result = await updateDocument(dir, req.params.id, String(title), content)
     res.json(result)

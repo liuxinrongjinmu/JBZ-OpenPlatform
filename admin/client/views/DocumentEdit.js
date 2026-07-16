@@ -3,6 +3,20 @@
  */
 import { api } from '../api/index.js'
 
+/**
+ * 获取状态码对应的中文描述
+ */
+function httpStatusText(status, defaultMsg) {
+  const map = {
+    400: '请求参数有误',
+    401: '登录已过期，请刷新页面重新登录',
+    404: '文档不存在，可能已被删除',
+    422: '文档内容校验不通过',
+    500: '服务器内部错误，请稍后重试',
+  }
+  return map[status] || defaultMsg || '未知错误'
+}
+
 export default {
   name: 'DocumentEdit',
   props: { dir: String, id: String },
@@ -25,6 +39,23 @@ export default {
 
       <div v-if="error" style="background:#fef2f2;color:#991b1b;padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;">
         {{ error }}
+      </div>
+
+      <!-- 内容校验错误详情 -->
+      <div v-if="validationErrors.length" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#92400e;font-size:14px;margin-bottom:12px;">
+          ⚠️ 文档内容存在 {{ validationErrors.length }} 个问题，保存失败（这些问题会导致 VitePress 构建报错）
+        </div>
+        <div v-for="(err, i) of validationErrors" :key="i" style="background:#fef3c7;border-radius:6px;padding:10px 14px;margin-bottom:8px;"
+             :style="i === validationErrors.length - 1 ? 'margin-bottom:0;' : ''">
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">
+            <span style="background:#d97706;color:#fff;font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap;margin-top:1px;">第 {{ err.line }} 行</span>
+            <span style="color:#92400e;font-size:13px;font-weight:600;">{{ err.message }}</span>
+          </div>
+          <div style="margin-left:48px;font-size:12px;color:#a16207;line-height:1.6;">
+            💡 <strong>怎么改：</strong>{{ err.fix }}
+          </div>
+        </div>
       </div>
 
       <!-- 编辑器 + 预览 -->
@@ -60,6 +91,7 @@ export default {
       title: '',
       content: '',
       error: '',
+      validationErrors: [],
       saving: false,
       saved: false,
       isNew: true,
@@ -126,10 +158,12 @@ export default {
     async saveDocument() {
       if (!this.title.trim()) {
         this.error = '请输入文档标题'
+        this.validationErrors = []
         return
       }
       this.saving = true
       this.error = ''
+      this.validationErrors = []
       this.saved = false
       try {
         if (this.isNew) {
@@ -143,7 +177,14 @@ export default {
         this.saved = true
         setTimeout(() => { this.saved = false }, 3000)
       } catch (err) {
-        this.error = '保存失败: ' + err.message
+        // 422 内容校验失败：展示每条错误的详细信息
+        if (err.status === 422 && err.details) {
+          this.error = '文档内容存在 ' + err.details.length + ' 个问题，无法通过 VitePress 构建，请先修正后再保存'
+          this.validationErrors = err.details
+        } else {
+          this.error = '保存失败 [HTTP ' + (err.status || '') + ']: ' + err.message
+          this.validationErrors = []
+        }
       } finally {
         this.saving = false
       }

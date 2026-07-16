@@ -169,6 +169,106 @@ export async function deleteDocument(dir, id) {
   return { success: true }
 }
 
+// HTML 自闭合标签（无需匹配闭合标签）
+const VOID_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+])
+
+/**
+ * 保存前校验 Markdown 内容，确保能通过 VitePress 构建
+ *
+ * VitePress 用 @vitejs/plugin-vue 把 .md 当 Vue SFC 编译，以下情况会导致构建失败：
+ *   1. 代码块/正文中出现 <script>、<template>、<style> 标签（Vue 编译器会当成组件块）
+ *   2. HTML 标签未正确闭合（如 <font>没有</font>）
+ *
+ * @param {string} content - Markdown 正文（不含 frontmatter）
+ * @returns {{ valid: boolean, errors: Array<{line: number, col: number, code: string, message: string, fix: string}> }}
+ */
+export function validateContent(content) {
+  const errors = []
+  const lines = content.split('\n')
+
+  // ── 1. 检查 <script> / <template> / <style> 标签 ──
+  // 这三个标签是 Vue SFC 的保留字，即使出现在代码块里也会被 Vue 编译器解析
+  const BLOCK_TAGS = [
+    { tag: 'script', fix: '&lt;script&gt;', closeFix: '&lt;/script&gt;' },
+    { tag: 'template', fix: '&lt;template&gt;', closeFix: '&lt;/template&gt;' },
+    { tag: 'style', fix: '&lt;style&gt;', closeFix: '&lt;/style&gt;' },
+  ]
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    for (const bt of BLOCK_TAGS) {
+      // 已转义的跳过
+      if (line.includes(`&lt;${bt.tag}`)) continue
+
+      const openIdx = line.indexOf(`<${bt.tag}`)
+      if (openIdx !== -1 && /<\bscript\b|<\btemplate\b|<\bstyle\b/i.test(line.slice(openIdx, openIdx + 10))) {
+        errors.push({
+          line: i + 1,
+          col: openIdx + 1,
+          code: 'VUE_BLOCK_TAG',
+          message: `第 ${i + 1} 行包含 "&lt;${bt.tag}&gt;" 标签，VitePress 构建时会将其当作 Vue 组件${bt.tag === 'script' ? '脚本' : bt.tag === 'template' ? '模板' : '样式'}块解析，导致构建失败`,
+          fix: '请将 "<' + bt.tag + '>" 改为 "' + bt.fix + '"，将 "</' + bt.tag + '>" 改为 "' + bt.closeFix + '"。即使这段代码在代码块（三个反引号）里面也不例外，VitePress 会把代码块中的 <' + bt.tag + '> 也当真实标签处理。',
+        })
+      }
+    }
+  }
+
+  // ── 2. 检查未闭合的 HTML 标签 ──
+  // 扫描所有 <tagName ...> 和 </tagName>，简单配对
+  const openTags = [] // { tag, line, col }
+  let allClean = true
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    // 匹配所有 <xxx> 和 </xxx> 标签
+    const tagRe = /<\/?(\w[\w-]*)([^>]*)>/g
+    let m
+    while ((m = tagRe.exec(line)) !== null) {
+      const tagName = m[1].toLowerCase()
+      const isClosing = m[0].startsWith('</')
+      const isVoid = VOID_TAGS.has(tagName)
+
+      if (isClosing) {
+        // 找最近的同名开标签
+        let found = false
+        for (let j = openTags.length - 1; j >= 0; j--) {
+          if (openTags[j].tag === tagName) {
+            openTags.splice(j, 1)
+            found = true
+            break
+          }
+        }
+        if (!found && !isVoid) {
+          // 只有闭标签没有开标签，可能是内容本身包含 </xxx>
+          // 这种情况不报错，因为 Markdown 正文中可能自然出现
+        }
+      } else if (!isVoid) {
+        // 开标签，不是自闭合的
+        openTags.push({ tag: tagName, line: i + 1, col: m.index + 1 })
+      }
+    }
+  }
+
+  // 只报告确实未闭合的标签（排除 Markdown 代码块中可能被误识别的）
+  if (openTags.length > 0 && openTags.length <= 5) {
+    for (const ot of openTags) {
+      allClean = false
+      errors.push({
+        line: ot.line,
+        col: ot.col,
+        code: 'UNCLOSED_TAG',
+        message: `第 ${ot.line} 行有未闭合的 HTML 标签 "&lt;${ot.tag}&gt;"，缺少对应的 "&lt;/${ot.tag}&gt;"。VitePress 构建时会报 "Element is missing end tag" 错误`,
+        fix: '请在合适的位置添加 "</' + ot.tag + '>" 闭合标签，或者将 "<' + ot.tag + '>" 改为 "&lt;' + ot.tag + '&gt;" 让浏览器按纯文本显示',
+      })
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
 /**
  * 获取文档的 Git 历史
  */

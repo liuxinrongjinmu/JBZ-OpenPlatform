@@ -41,7 +41,10 @@ async function request(url, options) {
 
   if (!res.ok) {
     var data = await res.json().catch(function() { return {} })
-    throw new Error(data.message || '请求失败 (' + res.status + ')')
+    var err = new Error(data.message || '请求失败 (' + res.status + ')')
+    err.status = res.status
+    err.details = data.details || null
+    throw err
   }
 
   return res.json()
@@ -431,6 +434,21 @@ var DocumentEdit = {
     '  <div v-if="error" style="background:#fef2f2;color:#991b1b;padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;">',
     '    {{ error }}',
     '  </div>',
+    '  <div v-if="validationErrors.length" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin-bottom:12px;">',
+    '    <div style="font-weight:700;color:#92400e;font-size:14px;margin-bottom:12px;">',
+    '      \u26A0\uFE0F 文档内容存在 {{ validationErrors.length }} 个问题，保存失败（这些问题会导致 VitePress 构建报错）',
+    '    </div>',
+    '    <div v-for="(err, i) of validationErrors" :key="i" style="background:#fef3c7;border-radius:6px;padding:10px 14px;margin-bottom:8px;"',
+    '         :style="i === validationErrors.length - 1 ? \'margin-bottom:0;\' : \'\'">',
+    '      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;">',
+    '        <span style="background:#d97706;color:#fff;font-size:11px;padding:1px 6px;border-radius:3px;white-space:nowrap;margin-top:1px;">第 {{ err.line }} 行</span>',
+    '        <span style="color:#92400e;font-size:13px;font-weight:600;">{{ err.message }}</span>',
+    '      </div>',
+    '      <div style="margin-left:48px;font-size:12px;color:#a16207;line-height:1.6;">',
+    '        \uD83D\uDCA1 <strong>怎么改：</strong>{{ err.fix }}',
+    '      </div>',
+    '    </div>',
+    '  </div>',
     '  <div ref="splitContainer" style="display:flex;gap:0;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;min-height:calc(100vh - 220px);">',
     '    <div ref="editorPane" style="flex:0 0 auto;width:50%;display:flex;flex-direction:column;border-right:1px solid #e5e7eb;min-width:240px;">',
     '      <div style="padding:8px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">',
@@ -463,7 +481,8 @@ var DocumentEdit = {
       saving: false,
       saved: false,
       isNew: true,
-      resizing: false
+      resizing: false,
+      validationErrors: [],
     }
   },
   computed: {
@@ -517,10 +536,12 @@ var DocumentEdit = {
     saveDocument: async function() {
       if (!this.title.trim()) {
         this.error = '请输入文档标题'
+        this.validationErrors = []
         return
       }
       this.saving = true
       this.error = ''
+      this.validationErrors = []
       this.saved = false
       try {
         if (this.isNew) {
@@ -535,7 +556,13 @@ var DocumentEdit = {
         var self = this
         setTimeout(function() { self.saved = false }, 3000)
       } catch (err) {
-        this.error = '保存失败: ' + err.message
+        if (err.status === 422 && err.details) {
+          this.error = '文档内容存在 ' + err.details.length + ' 个问题，无法通过 VitePress 构建，请先修正后再保存'
+          this.validationErrors = err.details
+        } else {
+          this.error = '保存失败 [HTTP ' + (err.status || '') + ']: ' + err.message
+          this.validationErrors = []
+        }
       } finally {
         this.saving = false
       }
