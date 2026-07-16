@@ -83,7 +83,6 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'CONTENT_TOO_LONG', message: `内容不能超过 ${MAX_CONTENT_LEN / 1000}KB` })
     }
     const result = await createDocument(dir, String(title), String(content))
-    gitCommit(`docs: add ${title} (${dir})`)
     res.status(201).json(result)
   } catch (err) {
     next(err)
@@ -109,7 +108,6 @@ router.put('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'CONTENT_TOO_LONG' })
     }
     const result = await updateDocument(dir, req.params.id, String(title), content)
-    gitCommit(`docs: update ${title} (${dir})`)
     res.json(result)
   } catch (err) {
     if (err.message === 'DOC_NOT_FOUND') return res.status(404).json({ error: 'DOC_NOT_FOUND' })
@@ -128,7 +126,6 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'INVALID_ID', message: '文档ID格式不正确' })
     }
     await deleteDocument(dir, req.params.id)
-    gitCommit(`docs: delete ${req.params.id} (${dir})`)
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -160,20 +157,4 @@ router.get('/:id/history', async (req, res, next) => {
     res.json({ commits: [] })
   }
 })
-
-/**
- * git add + commit（静默，失败不影响主流程）
- */
-function gitCommit(message) {
-  try {
-    execSync('git add -A docs/', { cwd: process.cwd(), stdio: 'ignore' })
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, {
-      cwd: process.cwd(),
-      stdio: 'ignore',
-    })
-  } catch {
-    // 静默失败：可能是无变更或非 git 环境
-  }
-}
-
 export default router
