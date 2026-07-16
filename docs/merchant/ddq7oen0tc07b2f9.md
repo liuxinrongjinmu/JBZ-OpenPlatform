@@ -209,8 +209,8 @@ webView.evaluateJavascript("window.onAppMessage && window.onAppMessage('" + payR
 ```
 
 ### 4、H5接收消息
-```plain
-<script>
+```html
+&lt;script&gt;
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
 
@@ -235,7 +235,7 @@ webView.evaluateJavascript("window.onAppMessage && window.onAppMessage('" + payR
       }
     };
   });
-</script>
+&lt;/script&gt;
 
 ```
 

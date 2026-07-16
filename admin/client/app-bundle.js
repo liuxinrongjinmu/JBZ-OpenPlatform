@@ -431,8 +431,8 @@ var DocumentEdit = {
     '  <div v-if="error" style="background:#fef2f2;color:#991b1b;padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;">',
     '    {{ error }}',
     '  </div>',
-    '  <div style="display:flex;gap:0;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;min-height:calc(100vh - 220px);">',
-    '    <div style="flex:1;display:flex;flex-direction:column;border-right:1px solid #e5e7eb;">',
+    '  <div ref="splitContainer" style="display:flex;gap:0;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;min-height:calc(100vh - 220px);">',
+    '    <div ref="editorPane" style="flex:0 0 auto;width:50%;display:flex;flex-direction:column;border-right:1px solid #e5e7eb;min-width:240px;">',
     '      <div style="padding:8px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">',
     '        Markdown 编辑',
     '      </div>',
@@ -440,7 +440,13 @@ var DocumentEdit = {
     '                style="flex:1;padding:16px;border:none;outline:none;font-size:14px;font-family:\'SF Mono\',Monaco,Menlo,monospace;line-height:1.7;resize:none;"',
     '                spellcheck="false"></textarea>',
     '    </div>',
-    '    <div style="flex:1;display:flex;flex-direction:column;">',
+    '    <div ref="splitter" @mousedown="startResize"',
+    '         style="flex:0 0 auto;width:6px;background:#f3f4f6;cursor:col-resize;display:flex;align-items:center;justify-content:center;transition:background .15s;"',
+    '         @mouseover="$event.target.style.background=\'#e5e7eb\'"',
+    '         @mouseleave="$event.target.style.background=\'#f3f4f6\'">',
+    '      <div style="width:2px;height:24px;background:#d1d5db;border-radius:1px;"></div>',
+    '    </div>',
+    '    <div ref="previewPane" style="flex:1 1 auto;display:flex;flex-direction:column;min-width:240px;">',
     '      <div style="padding:8px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">',
     '        预览',
     '      </div>',
@@ -456,7 +462,8 @@ var DocumentEdit = {
       error: '',
       saving: false,
       saved: false,
-      isNew: true
+      isNew: true,
+      resizing: false
     }
   },
   computed: {
@@ -532,8 +539,41 @@ var DocumentEdit = {
       } finally {
         this.saving = false
       }
-    }
+  },
+  startResize: function(e) {
+    this.resizing = true
+    var container = this.$refs.splitContainer
+    var startX = e.clientX
+    var startWidth = this.$refs.editorPane.offsetWidth
+    var containerWidth = container.offsetWidth
+    var splitterWidth = this.$refs.splitter.offsetWidth
+    var editorPane = this.$refs.editorPane
+
+    var onMove = function(ev) {
+      if (!this.resizing) return
+      var delta = ev.clientX - startX
+      var newWidth = startWidth + delta
+      var minWidth = 240
+      var maxWidth = containerWidth - splitterWidth - minWidth
+      if (newWidth < minWidth) newWidth = minWidth
+      if (newWidth > maxWidth) newWidth = maxWidth
+      editorPane.style.width = newWidth + 'px'
+    }.bind(this)
+
+    var onUp = function() {
+      this.resizing = false
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+    }.bind(this)
+
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
   }
+}
 }
 
 // ============================================================

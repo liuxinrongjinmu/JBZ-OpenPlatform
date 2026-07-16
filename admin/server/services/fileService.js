@@ -105,14 +105,31 @@ export async function getDocument(dir, id) {
 }
 
 /**
+ * 生成 frontmatter 头部（避免 matter.stringify 污染正文中的 ---）
+ */
+function buildFrontmatter(obj) {
+  const lines = ['---']
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null || v === '') continue
+    lines.push(`${k}: ${String(v)}`)
+  }
+  lines.push('---')
+  lines.push('')
+  return lines.join('\n')
+}
+
+/**
  * 创建新文档
  */
 export async function createDocument(dir, title, content = '') {
   if (!VALID_DIRS.includes(dir)) throw new Error(`Invalid dir: ${dir}`)
   const id = nanoid(12)
   const filePath = path.join(DOCS_ROOT, dir, `${id}.md`)
-  const frontmatter = `---\ntitle: ${title}\ndate: ${new Date().toISOString()}\n---\n\n`
-  const fullContent = frontmatter + content
+  const frontmatter = buildFrontmatter({
+    title,
+    date: new Date().toISOString(),
+  })
+  const fullContent = frontmatter + '\n' + content
 
   await fs.mkdir(path.dirname(filePath), { recursive: true })
   await fs.writeFile(filePath, fullContent, 'utf-8')
@@ -130,10 +147,14 @@ export async function updateDocument(dir, id, title, content) {
   const existing = await getDocument(dir, id)
   if (!existing) throw new Error('DOC_NOT_FOUND')
 
-  const frontmatter = { ...existing.frontmatter, title }
-  frontmatter.updatedAt = new Date().toISOString()
-  const fmStr = matter.stringify(content, frontmatter)
-  await fs.writeFile(filePath, fmStr, 'utf-8')
+  // 不依赖 matter.stringify，手动构建 frontmatter，保留正文原样
+  // 避免正文中的 --- 被 gray-matter 误解析导致截断/乱码
+  const fm = { ...existing.frontmatter, title, updatedAt: new Date().toISOString() }
+  // 如果已有的 title 字段值和更新的一样，覆盖，否则保留
+  const updated = buildFrontmatter(fm)
+  const fullContent = updated + '\n' + content
+
+  await fs.writeFile(filePath, fullContent, 'utf-8')
 
   return { id, path: filePath }
 }
