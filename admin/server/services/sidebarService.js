@@ -5,6 +5,7 @@
  * 采用全量解析-修改-序列化策略，不使用正则替换，确保可靠性。
  */
 import fs from 'node:fs/promises'
+import fsSync from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -213,4 +214,103 @@ function findNodeById(nodes, id) {
     arr = current.items || []
   }
   return current
+}
+
+// ====== 侧边栏保存前校验 ======
+
+/**
+ * 文档根目录（用于校验链接存在性）
+ */
+const docsRoot = path.resolve(__dirname, '../../../docs')
+
+/**
+ * 解析链接并提取文档路径信息
+ * @param {string} link - 侧边栏链接，如 "/merchant/xxx.md"
+ * @returns {{ dir: string, id: string } | null}
+ */
+function parseLink(link) {
+  if (!link) return null
+  const m = String(link).match(/^\/(merchant|supplier)\/([a-zA-Z0-9_-]+)\.md$/)
+  return m ? { dir: m[1], id: m[2] } : null
+}
+
+/**
+ * 校验单个节点的 link 是否有效
+ * 用于新增/修改节点时快速校验，无需解析完整树
+ *
+ * @param {{ text?: string, link?: string }} node - 待校验的节点
+ * @returns {{ valid: boolean, errors: Array }}
+ */
+export function validateSingleNode(node) {
+  if (!node.link) return { valid: true, errors: [] }
+
+  const parsed = parseLink(node.link)
+  if (!parsed) return { valid: true, errors: [] }
+
+  const filePath = path.join(docsRoot, parsed.dir, parsed.id + '.md')
+  if (!fsSync.existsSync(filePath)) {
+    return {
+      valid: false,
+      errors: [{
+        node: node.text || '(未命名)',
+        link: node.link,
+        message: `菜单节点"${node.text}"的链接"${node.link}"指向的文档不存在（文件：${parsed.dir}/${parsed.id}.md），构建后将无法访问（404）`,
+        fix: `请先在「文档列表 > ${parsed.dir === 'merchant' ? '商家版' : '供应商版'}」中创建该文档，或修改链接指向已有的文档文件`,
+      }],
+    }
+  }
+
+  return { valid: true, errors: [] }
+}
+
+/**
+ * 校验侧边栏所有 link 是否指向存在的文档文件
+ *
+ * 在保存侧边栏前调用，确保所有链接有效，避免构建时 404。
+ * 校验规则：
+ *   1. 只校验格式为 /dir/filename.md 的文档链接
+ *   2. 检查对应 docs/dir/filename.md 是否存在
+ *   3. 不含 link 的纯分组节点（父节点）不校验
+ *
+ * @param {string} dir  - 文档目录名 ("merchant" | "supplier")
+ * @param {Array}  tree - 待校验的菜单树
+ * @returns {{ valid: boolean, errors: Array<{node: string, link: string, message: string, fix: string}> }}
+ */
+export function validateSidebarLinks(dir, tree) {
+  const errors = []
+
+  /**
+   * 递归遍历节点
+   * @param {Array}  nodes     - 当前层级节点
+   * @param {string} pathHint  - 菜单路径（用于错误定位）
+   */
+  function walk(nodes, pathHint) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      const nodePos = pathHint ? `${pathHint} > "${node.text}"` : `"${node.text}"`
+
+      if (node.link) {
+        const parsed = parseLink(node.link)
+        if (parsed) {
+          const filePath = path.join(docsRoot, parsed.dir, parsed.id + '.md')
+          if (!fsSync.existsSync(filePath)) {
+            errors.push({
+              node: node.text,
+              link: node.link,
+              message: `菜单节点 ${nodePos} 的链接"${node.link}"指向的文档不存在（文件：${parsed.dir}/${parsed.id}.md），构建后将无法访问（404）`,
+              fix: `请先在「文档列表 > ${parsed.dir === 'merchant' ? '商家版' : '供应商版'}」中创建该文档，或修改链接指向已有的文档文件`,
+            })
+          }
+        }
+      }
+
+      if (node.items && Array.isArray(node.items) && node.items.length > 0) {
+        walk(node.items, nodePos)
+      }
+    }
+  }
+
+  walk(tree, '')
+
+  return { valid: errors.length === 0, errors }
 }

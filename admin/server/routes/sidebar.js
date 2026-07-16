@@ -8,6 +8,8 @@ import {
   addSidebarNode,
   removeSidebarNode,
   updateSidebarNode,
+  validateSidebarLinks,
+  validateSingleNode,
 } from '../services/sidebarService.js'
 
 const router = Router()
@@ -38,7 +40,7 @@ router.get('/', async (req, res, next) => {
   }
 })
 
-// PUT 全量更新菜单树
+// PUT 全量更新菜单树（保存前校验所有链接）
 router.put('/', async (req, res, next) => {
   try {
     const { dir, tree } = req.body
@@ -50,6 +52,15 @@ router.put('/', async (req, res, next) => {
     if (treeJson.length > MAX_TREE_SIZE_MB * 1024 * 1024) {
       return res.status(400).json({ error: 'TREE_TOO_LARGE', message: `菜单树不能超过 ${MAX_TREE_SIZE_MB}MB` })
     }
+    // 保存前校验：所有链接必须指向存在的文档
+    const validation = validateSidebarLinks(dir, tree)
+    if (!validation.valid) {
+      return res.status(422).json({
+        error: 'SIDEBAR_LINK_INVALID',
+        message: `侧边栏中有 ${validation.errors.length} 个链接指向不存在的文档，构建后将无法访问（404），请修正后再保存`,
+        details: validation.errors,
+      })
+    }
     await serializeSidebar(dir, tree)
     res.json({ success: true })
   } catch (err) {
@@ -57,7 +68,7 @@ router.put('/', async (req, res, next) => {
   }
 })
 
-// POST 新增节点
+// POST 新增节点（保存前校验链接）
 router.post('/node', async (req, res, next) => {
   try {
     const { dir, parentId, node } = req.body
@@ -75,6 +86,15 @@ router.post('/node', async (req, res, next) => {
     if (parentId && String(parentId).length > 200) {
       return res.status(400).json({ error: 'INVALID_PARENT_ID' })
     }
+    // 保存前校验：链接必须指向存在的文档
+    const validation = validateSingleNode(node)
+    if (!validation.valid) {
+      return res.status(422).json({
+        error: 'SIDEBAR_LINK_INVALID',
+        message: validation.errors[0].message,
+        details: validation.errors,
+      })
+    }
     await addSidebarNode(dir, parentId || null, node)
     res.json({ success: true })
   } catch (err) {
@@ -82,7 +102,7 @@ router.post('/node', async (req, res, next) => {
   }
 })
 
-// PUT 修改节点
+// PUT 修改节点（保存前校验链接）
 router.put('/node/:nodeId', async (req, res, next) => {
   try {
     const { dir, patch } = req.body
@@ -94,6 +114,17 @@ router.put('/node/:nodeId', async (req, res, next) => {
     }
     if (patch.link && String(patch.link).length > MAX_NODE_LINK_LEN) {
       return res.status(400).json({ error: 'LINK_TOO_LONG' })
+    }
+    // 保存前校验：如果修改了链接，必须指向存在的文档
+    if (patch.link !== undefined) {
+      const validation = validateSingleNode({ text: patch.text || '', link: patch.link })
+      if (!validation.valid) {
+        return res.status(422).json({
+          error: 'SIDEBAR_LINK_INVALID',
+          message: validation.errors[0].message,
+          details: validation.errors,
+        })
+      }
     }
     await updateSidebarNode(dir, req.params.nodeId, patch)
     res.json({ success: true })

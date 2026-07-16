@@ -13,6 +13,20 @@ export default {
         <button @click="addRootNode" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;">+ 添加根节点</button>
       </div>
 
+      <!-- 校验错误提示 -->
+      <div v-if="sidebarErrors.length" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:16px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#92400e;font-size:14px;margin-bottom:8px;">
+          ⚠️ 侧边栏保存失败：有 {{ sidebarErrors.length }} 个链接指向不存在的文档
+        </div>
+        <div v-for="(err, i) of sidebarErrors" :key="i" style="background:#fef3c7;border-radius:6px;padding:10px 14px;margin-bottom:8px;"
+             :style="i === sidebarErrors.length - 1 ? 'margin-bottom:0;' : ''">
+          <div style="color:#92400e;font-size:13px;font-weight:600;margin-bottom:4px;">{{ err.message }}</div>
+          <div style="font-size:12px;color:#a16207;line-height:1.6;">
+            💡 <strong>怎么改：</strong>{{ err.fix }}
+          </div>
+        </div>
+      </div>
+
       <div v-if="loading" style="text-align:center;padding:40px;color:#9ca3af;">加载中...</div>
 
       <div v-else style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px;">
@@ -64,6 +78,7 @@ export default {
       modalNodeId: null,
       docs: [],
       modalDocId: '',
+      sidebarErrors: [],
     }
   },
   async mounted() {
@@ -158,6 +173,7 @@ export default {
       } else if (!this.modalForm.link) {
         this.modalForm.link = ''
       }
+      this.sidebarErrors = []
       try {
         if (this.modalAction === 'add-root') {
           await api.addSidebarNode({ dir: this.dir, parentId: null, node: this.modalForm })
@@ -169,7 +185,11 @@ export default {
         this.showModal = false
         await this.loadTree()
       } catch (err) {
-        alert('操作失败: ' + err.message)
+        if (err.status === 422 && err.details) {
+          this.sidebarErrors = err.details
+        } else {
+          alert('操作失败: ' + err.message)
+        }
       }
     },
   },
