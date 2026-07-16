@@ -19,3 +19,4 @@ docs-management/
 *.tar
 *.tar.gz
 TAPD任务清单.csv
+docs/public/doc-index.json
