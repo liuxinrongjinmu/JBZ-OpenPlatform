@@ -4,6 +4,7 @@
 import { Router } from 'express'
 import { spawn, execSync } from 'node:child_process'
 import path from 'node:path'
+import fs from 'node:fs'
 
 const router = Router()
 
@@ -60,13 +61,18 @@ router.post('/', (req, res) => {
     buildState.running = false
 
     if (code === 0) {
-      // 构建成功后，同步 dist 到 nginx 静态目录
+      // 构建成功后，如果存在 Nginx 静态目录则同步（Docker / 生产环境）
+      // 本地开发环境没有 /usr/share/nginx/html，跳过同步不报错
       try {
         const distDir = path.resolve(process.cwd(), 'docs/.vitepress/dist')
         const nginxDir = '/usr/share/nginx/html'
-        send('log', { line: '正在同步文件到 Nginx...' })
-        execSync(`cp -r ${distDir}/* ${nginxDir}/`, { stdio: 'pipe' })
-        send('log', { line: '文件同步完成' })
+        if (fs.existsSync(nginxDir) && fs.statSync(nginxDir).isDirectory()) {
+          send('log', { line: '正在同步文件到 Nginx...' })
+          execSync(`cp -r ${distDir}/* ${nginxDir}/`, { stdio: 'pipe' })
+          send('log', { line: '文件同步完成' })
+        } else {
+          send('log', { line: '本地开发环境，无需同步 Nginx 目录', level: 'info' })
+        }
       } catch (syncErr) {
         send('log', { line: `同步失败: ${syncErr.message}`, level: 'warn' })
       }
