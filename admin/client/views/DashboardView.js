@@ -45,6 +45,22 @@ export default {
                   :style="building ? 'opacity:.6;cursor:not-allowed;' : ''">
             {{ building ? '构建中...' : '重新构建' }}
           </button>
+          <!-- 构建失败错误摘要 -->
+          <div v-if="buildErrors.length" style="margin-top:16px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:16px;">
+            <div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:12px;">
+              ❌ 构建失败，检测到 {{ buildErrors.length }} 个问题
+            </div>
+            <div v-for="(err, i) of buildErrors" :key="i" style="background:#fff;border:1px solid #fecaca;border-radius:6px;padding:10px 14px;margin-bottom:8px;"
+                 :style="i === buildErrors.length - 1 ? 'margin-bottom:0;' : ''">
+              <div style="display:flex;gap:8px;margin-bottom:4px;">
+                <span style="flex-shrink:0;font-size:16px;">{{ errTypeIcon(err.type) }}</span>
+                <span style="color:#991b1b;font-size:13px;font-weight:600;">{{ err.message }}</span>
+              </div>
+              <div style="margin-left:28px;font-size:12px;color:#b91c1c;line-height:1.6;">
+                💡 <strong>解决方法：</strong>{{ err.fix }}
+              </div>
+            </div>
+          </div>
           <!-- 构建日志 -->
           <div v-if="buildLogs.length" style="margin-top:16px;background:#1e293b;color:#e2e8f0;border-radius:8px;padding:12px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:12px;">
             <div v-for="(log, i) of buildLogs" :key="i" :style="log.level === 'warn' ? 'color:#fbbf24;' : ''">{{ log.line }}</div>
@@ -70,6 +86,7 @@ export default {
       buildStatus: {},
       building: false,
       buildLogs: [],
+      buildErrors: [],
     }
   },
   async mounted() {
@@ -96,9 +113,9 @@ export default {
       if (this.building) return
       this.building = true
       this.buildLogs = []
+      this.buildErrors = []
 
-      const eventSource = new EventSource('/api/admin/build', { withCredentials: true })
-      // SSE 不直接支持 POST，这里改为先尝试直接 fetch SSE
+      // SSE 不直接支持 POST，这里改为先尝试 fetch SSE
       // 用 fetch + ReadableStream 替代
       fetch('/api/admin/build', { method: 'POST', credentials: 'same-origin' })
         .then(async (res) => {
@@ -128,6 +145,9 @@ export default {
                   } else if (data.message) {
                     this.buildLogs.push({ line: '❌ ' + data.message, level: 'warn' })
                     this.building = false
+                  } else if (data.errors) {
+                    // 结构化错误摘要（error_summary 事件）
+                    this.buildErrors = data.errors
                   }
                 } catch {}
               }
@@ -138,6 +158,10 @@ export default {
           this.buildLogs.push({ line: '❌ ' + err.message, level: 'warn' })
           this.building = false
         })
+    },
+    errTypeIcon(type) {
+      const icons = { dead_link: '🔗', vue_compiler: '⚠️', unclosed_tag: '🏷️', import_error: '📦', unknown: '❓' }
+      return icons[type] || '❓'
     },
   },
 }

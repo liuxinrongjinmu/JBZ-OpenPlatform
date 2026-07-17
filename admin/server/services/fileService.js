@@ -3,6 +3,7 @@
  * 数据即文件，不依赖数据库
  */
 import fs from 'node:fs/promises'
+import fsSync from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import matter from 'gray-matter'
@@ -255,13 +256,33 @@ export function validateContent(content) {
   // 只报告确实未闭合的标签（排除 Markdown 代码块中可能被误识别的）
   if (openTags.length > 0 && openTags.length <= 5) {
     for (const ot of openTags) {
-      allClean = false
       errors.push({
         line: ot.line,
         col: ot.col,
         code: 'UNCLOSED_TAG',
         message: `第 ${ot.line} 行有未闭合的 HTML 标签 "&lt;${ot.tag}&gt;"，缺少对应的 "&lt;/${ot.tag}&gt;"。VitePress 构建时会报 "Element is missing end tag" 错误`,
         fix: '请在合适的位置添加 "</' + ot.tag + '>" 闭合标签，或者将 "<' + ot.tag + '>" 改为 "&lt;' + ot.tag + '&gt;" 让浏览器按纯文本显示',
+      })
+    }
+  }
+
+  // ── 3. 检查站内死链 ──
+  // 扫描 Markdown 链接 [text](/merchant/xxx.md) 或 [text](/supplier/xxx.md)
+  // 检查目标 .md 文件是否真实存在，避免构建时因 dead link 失败
+  const mdLinkRe = /\[([^\]]*)\]\(\/(merchant|supplier)\/([a-zA-Z0-9_-]+)\.md\)/g
+  while ((m = mdLinkRe.exec(content)) !== null) {
+    const linkText = m[1], linkDir = m[2], linkId = m[3]
+    const linkPath = path.join(DOCS_ROOT, linkDir, linkId + '.md')
+    if (!fsSync.existsSync(linkPath)) {
+      const beforeMatch = content.substring(0, m.index)
+      const lineNum = beforeMatch.split('\n').length
+      const colNum = m.index - (beforeMatch.lastIndexOf('\n') + 1) + 1
+      errors.push({
+        line: lineNum,
+        col: colNum,
+        code: 'DEAD_LINK',
+        message: `第 ${lineNum} 行有无效链接 "[${linkText}](/${linkDir}/${linkId}.md)"，目标文档不存在`,
+        fix: `请将链接改为已有的文档ID，或先在「文档列表 > ${linkDir === 'merchant' ? '商家版' : '供应商版'}」中创建对应的文档`,
       })
     }
   }
