@@ -220,16 +220,15 @@ export function validateContent(content) {
   // ── 2. 检查未闭合的 HTML 标签 ──
   // 扫描所有 <tagName ...> 和 </tagName>，简单配对
   const openTags = [] // { tag, line, col }
-  let allClean = true
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     // 匹配所有 <xxx> 和 </xxx> 标签
     const tagRe = /<\/?(\w[\w-]*)([^>]*)>/g
-    let m
-    while ((m = tagRe.exec(line)) !== null) {
-      const tagName = m[1].toLowerCase()
-      const isClosing = m[0].startsWith('</')
+    let tagMatch
+    while ((tagMatch = tagRe.exec(line)) !== null) {
+      const tagName = tagMatch[1].toLowerCase()
+      const isClosing = tagMatch[0].startsWith('</')
       const isVoid = VOID_TAGS.has(tagName)
 
       if (isClosing) {
@@ -248,7 +247,7 @@ export function validateContent(content) {
         }
       } else if (!isVoid) {
         // 开标签，不是自闭合的
-        openTags.push({ tag: tagName, line: i + 1, col: m.index + 1 })
+        openTags.push({ tag: tagName, line: i + 1, col: tagMatch.index + 1 })
       }
     }
   }
@@ -270,13 +269,14 @@ export function validateContent(content) {
   // 扫描 Markdown 链接 [text](/merchant/xxx.md) 或 [text](/supplier/xxx.md)
   // 检查目标 .md 文件是否真实存在，避免构建时因 dead link 失败
   const mdLinkRe = /\[([^\]]*)\]\(\/(merchant|supplier)\/([a-zA-Z0-9_-]+)\.md\)/g
-  while ((m = mdLinkRe.exec(content)) !== null) {
-    const linkText = m[1], linkDir = m[2], linkId = m[3]
+  let linkMatch
+  while ((linkMatch = mdLinkRe.exec(content)) !== null) {
+    const linkText = linkMatch[1], linkDir = linkMatch[2], linkId = linkMatch[3]
     const linkPath = path.join(DOCS_ROOT, linkDir, linkId + '.md')
     if (!fsSync.existsSync(linkPath)) {
-      const beforeMatch = content.substring(0, m.index)
+      const beforeMatch = content.substring(0, linkMatch.index)
       const lineNum = beforeMatch.split('\n').length
-      const colNum = m.index - (beforeMatch.lastIndexOf('\n') + 1) + 1
+      const colNum = linkMatch.index - (beforeMatch.lastIndexOf('\n') + 1) + 1
       errors.push({
         line: lineNum,
         col: colNum,
