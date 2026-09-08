@@ -2,7 +2,7 @@
 /**
  * 简易预览服务器：用于 vitepress preview 替代方案
  * - 提供 dist 目录的静态文件
- * - 代理 /api/chat 到 DeepSeek（保护 API Key）
+ * - 代理 /api/chat 到 MiniMax（保护 API Key，双 Key 故障切换）
  *
  * 启动：node tools/preview-server.js
  * 端口：4173（或通过 PORT 环境变量）
@@ -11,7 +11,6 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadEnv } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -19,11 +18,23 @@ const DIST = path.join(ROOT, 'docs', '.vitepress', 'dist')
 const PORT = Number(process.env.PORT || 4173)
 const HOST = process.env.HOST || '0.0.0.0'
 
-// 加载 .env 中的 VITE_DEEPSEEK_API_KEY
-const env = loadEnv('', ROOT, 'VITE_')
-const API_KEY = env.VITE_DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY || ''
-if (!API_KEY) {
-  console.warn('[warn] 未检测到 VITE_DEEPSEEK_API_KEY，AI 聊天代理将返回 401')
+// MiniMax 接口配置（与 admin/server/routes/chat.js 保持一致）
+const MINIMAX_API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2'
+const MINIMAX_MODEL = 'MiniMax-M2.5'
+
+// 加载 .env 中的 MINIMAX_API_KEY_1 / MINIMAX_API_KEY_2
+const envFile = (() => {
+  try {
+    return fs.readFileSync(path.join(ROOT, '.env'), 'utf-8')
+  } catch {
+    return ''
+  }
+})()
+const readEnv = (name) =>
+  process.env[name] || envFile.match(new RegExp(`^${name}=(.*)$`, 'm'))?.[1].trim() || ''
+const API_KEYS = [readEnv('MINIMAX_API_KEY_1'), readEnv('MINIMAX_API_KEY_2')].filter(Boolean)
+if (API_KEYS.length === 0) {
+  console.warn('[warn] 未检测到 MINIMAX_API_KEY_1/2，AI 聊天代理将返回 500')
 }
 
 const MIME = {
@@ -51,65 +62,81 @@ if (fs.existsSync(notFoundPath)) {
   notFoundHtml = fs.readFileSync(notFoundPath, 'utf-8')
 }
 
-// 代理 /api/chat 到 DeepSeek
-const proxyToDeepSeek = (req, res) => {
+// 代理 /api/chat 到 MiniMax（双 Key 故障切换，强制覆盖 model）
+const proxyToMinimax = (req, res) => {
   const chunks = []
   req.on('data', (c) => chunks.push(c))
   req.on('end', async () => {
-    const body = Buffer.concat(chunks).toString('utf-8')
-    console.log(`[proxy] ${req.method} /api/chat (${body.length} bytes)`)
+    const rawBody = Buffer.concat(chunks).toString('utf-8')
+    console.log(`[proxy] ${req.method} /api/chat (${rawBody.length} bytes)`)
 
+    // 强制使用服务端配置的模型，避免透传前端遗留的模型名
+    let payload
     try {
-      const upstream = await fetch('https://api.deepseek.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: req.headers.accept || 'text/event-stream',
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        body,
-      })
+      payload = { ...JSON.parse(rawBody), model: MINIMAX_MODEL }
+    } catch {
+      res.statusCode = 400
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ error: { message: '请求体不是合法 JSON' } }))
+      return
+    }
 
-      res.statusCode = upstream.status
-      res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
-      res.setHeader('Cache-Control', 'no-cache')
-      res.setHeader('Access-Control-Allow-Origin', '*')
-
-      if (!upstream.ok) {
-        const errText = await upstream.text()
-        console.error(`[proxy] upstream error ${upstream.status}: ${errText.slice(0, 200)}`)
-        res.end(errText)
-        return
-      }
-
-      // 流式响应
-      if (!upstream.body) {
-        res.end()
-        return
-      }
-      const reader = upstream.body.getReader()
-      const pump = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            if (!res.write(Buffer.from(value))) {
-              await new Promise((r) => res.once('drain', r))
-            }
-          }
-          res.end()
-        } catch (err) {
-          console.error('[proxy] stream error:', err.message)
-          res.end()
+    let upstream = null
+    let lastError = ''
+    for (const apiKey of API_KEYS) {
+      try {
+        const resp = await fetch(MINIMAX_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: req.headers.accept || 'text/event-stream',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        })
+        if (resp.ok && (resp.headers.get('content-type') || '').includes('text/event-stream')) {
+          upstream = resp
+          break
         }
+        const errText = await resp.text().catch(() => '')
+        lastError = `HTTP ${resp.status}`
+        console.error(`[proxy] upstream error: ${lastError} ${errText.slice(0, 200)}`)
+      } catch (err) {
+        lastError = err.message
+        console.error('[proxy] fetch error:', err.message)
       }
-      pump()
-    } catch (err) {
-      console.error('[proxy] fetch error:', err.message)
+    }
+
+    if (!upstream) {
       res.statusCode = 502
       res.setHeader('Content-Type', 'application/json')
-      res.end(JSON.stringify({ error: { message: err.message } }))
+      res.end(JSON.stringify({ error: { message: `AI 服务异常 (${lastError})` } }))
+      return
     }
+
+    res.statusCode = upstream.status
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Access-Control-Allow-Origin', '*')
+
+    // 流式响应
+    const reader = upstream.body.getReader()
+    const pump = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (!res.write(Buffer.from(value))) {
+            await new Promise((r) => res.once('drain', r))
+          }
+        }
+        res.end()
+      } catch (err) {
+        console.error('[proxy] stream error:', err.message)
+        res.end()
+      }
+    }
+    pump()
   })
   req.on('error', (err) => console.error('[proxy] req error:', err.message))
 }
@@ -196,7 +223,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`[preview] 静态服务: http://localhost:${PORT}/`)
-  console.log(`[preview] AI 代理:   /api/chat → DeepSeek`)
+  console.log(`[preview] AI 代理:   /api/chat → MiniMax`)
   console.log(`[preview] DIST:      ${DIST}`)
-  if (API_KEY) console.log(`[preview] API Key:   已配置`)
+  if (API_KEYS.length > 0) console.log(`[preview] API Key:   已配置 ${API_KEYS.length} 个`)
 })

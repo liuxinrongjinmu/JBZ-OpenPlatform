@@ -197,7 +197,6 @@ const sendMessage = async (presetText?: string) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: buildSystemPrompt() },
           ...contextHistory.map((m) => ({ role: m.role, content: m.content })),

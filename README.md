@@ -41,7 +41,8 @@ cp .env.example .env
 # 编辑 .env（以下三项必须配置）:
 #   ADMIN_PASSWORD=你的强密码
 #   SESSION_SECRET=随机字符串（openssl rand -hex 32）
-#   VITE_DEEPSEEK_API_KEY=sk-xxx (AI助手需要)
+#   MINIMAX_API_KEY_1=xxx (AI助手需要，https://platform.minimaxi.com 获取)
+#   MINIMAX_API_KEY_2=xxx (备用Key，可选，主Key失效时自动切换)
 ```
 
 ## 迁移工具

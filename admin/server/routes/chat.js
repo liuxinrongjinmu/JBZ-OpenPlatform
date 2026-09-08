@@ -1,15 +1,16 @@
 /**
  * RAG 聊天代理路由
  *
- * 拦截前端 /api/chat 请求 → 文档检索 → 增强 System Prompt → DeepSeek API → SSE 流式返回
+ * 拦截前端 /api/chat 请求 → 文档检索 → 增强 System Prompt → MiniMax API → SSE 流式返回
+ * 支持双 API Key 故障切换：主 Key 失效（欠费/限流/无效）时自动切换备用 Key
  */
 import express from 'express'
 import searchService from '../services/searchService.js'
 
 const router = express.Router()
 
-const DEEPSEEK_MODEL = 'deepseek-chat'
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
+const MINIMAX_MODEL = 'MiniMax-M2.5'
+const MINIMAX_API_URL = 'https://api.minimaxi.com/v1/text/chatcompletion_v2'
 const MAX_SEARCH_RESULTS = 5
 const MAX_MESSAGES_LENGTH = 50
 const MIN_TEMPERATURE = 0
@@ -109,76 +110,94 @@ router.post('/', async (req, res) => {
     apiMessages.unshift({ role: 'system', content: contextBlock })
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY
-  if (!apiKey) {
-    return res.status(500).json({ error: 'DEEPSEEK_API_KEY 环境变量未设置' })
+  // ── 代理到 MiniMax（双 Key 故障切换）──
+  const apiKeys = [process.env.MINIMAX_API_KEY_1, process.env.MINIMAX_API_KEY_2].filter(Boolean)
+  if (apiKeys.length === 0) {
+    return res.status(500).json({ error: 'MINIMAX_API_KEY_1 / MINIMAX_API_KEY_2 环境变量未设置' })
   }
 
-  // ── 代理到 DeepSeek ──
-  try {
-    const dsResp = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: apiMessages,
-        stream,
-        temperature,
-      }),
-    })
-
-    if (!dsResp.ok) {
-      const errText = await dsResp.text().catch(() => '')
-      logError(`[RAG Chat] DeepSeek API 错误 (${dsResp.status}):`, errText.slice(0, 200))
-      return res.status(dsResp.status).json({
-        error: `AI 服务异常 (${dsResp.status})`,
+  let aiResp = null
+  let lastError = ''
+  for (let i = 0; i < apiKeys.length; i++) {
+    try {
+      const resp = await fetch(MINIMAX_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKeys[i]}`,
+        },
+        body: JSON.stringify({
+          model: MINIMAX_MODEL,
+          messages: apiMessages,
+          stream,
+          temperature,
+        }),
       })
-    }
 
-    // SSE 流式透传
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.setHeader('X-Accel-Buffering', 'no')
+      // MiniMax 失败时可能返回非 200，也可能返回 HTTP 200 + JSON(base_resp.status_code != 0)
+      // 统一判定：只有 200 + text/event-stream 才视为成功，否则切换下一个 Key
+      if (resp.ok && (resp.headers.get('content-type') || '').includes('text/event-stream')) {
+        aiResp = resp
+        log(`[RAG Chat] 使用 Key#${i + 1} 成功建立连接`)
+        break
+      }
 
-    const reader = dsResp.body?.getReader?.()
-    if (!reader) {
-      return res.status(500).json({ error: '无法读取 AI 响应流' })
-    }
-
-    const decoder = new TextDecoder()
-    const pump = async () => {
+      const errText = await resp.text().catch(() => '')
+      let detail = `HTTP ${resp.status}`
       try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            res.end()
-            break
-          }
-          const chunk = decoder.decode(value, { stream: true })
-          if (!res.writableEnded) res.write(chunk)
-        }
-      } catch (err) {
-        if (!res.writableEnded) {
-          logError('[RAG Chat] SSE 流错误:', err.message)
+        const baseResp = JSON.parse(errText).base_resp
+        if (baseResp?.status_code) detail = `${baseResp.status_code} ${baseResp.status_msg}`
+      } catch { /* 保留 HTTP 状态码描述 */ }
+      lastError = detail
+      logError(`[RAG Chat] MiniMax Key#${i + 1} 失败: ${detail}`, errText.slice(0, 200))
+    } catch (err) {
+      lastError = err.message
+      logError(`[RAG Chat] MiniMax Key#${i + 1} 请求异常:`, err.message)
+    }
+  }
+
+  if (!aiResp) {
+    if (!res.headersSent) {
+      res.status(502).json({ error: `AI 服务异常 (${lastError})` })
+    }
+    return
+  }
+
+  // SSE 流式透传
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+
+  const reader = aiResp.body?.getReader?.()
+  if (!reader) {
+    return res.status(500).json({ error: '无法读取 AI 响应流' })
+  }
+
+  const decoder = new TextDecoder()
+  const pump = async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
           res.end()
+          break
         }
+        const chunk = decoder.decode(value, { stream: true })
+        if (!res.writableEnded) res.write(chunk)
+      }
+    } catch (err) {
+      if (!res.writableEnded) {
+        logError('[RAG Chat] SSE 流错误:', err.message)
+        res.end()
       }
     }
-    pump()
-
-    req.on('close', () => {
-      reader.cancel().catch(() => {})
-    })
-  } catch (err) {
-    logError('[RAG Chat] 请求失败:', err.message)
-    if (!res.headersSent) {
-      res.status(502).json({ error: 'AI 服务不可达' })
-    }
   }
+  pump()
+
+  req.on('close', () => {
+    reader.cancel().catch(() => {})
+  })
 })
 
 export default router

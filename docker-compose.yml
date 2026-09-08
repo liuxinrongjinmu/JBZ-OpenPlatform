@@ -11,8 +11,9 @@ services:
       # 管理员 Session 持久化（容器重启不影响登录状态）
       - ./data/sessions:/app/data/sessions
     environment:
-      # AI聊天API Key，从 .env 文件读取
-      - DEEPSEEK_API_KEY=${VITE_DEEPSEEK_API_KEY:-}
+      # AI聊天API Key（MiniMax，从 .env 文件读取，双 Key 故障切换）
+      - MINIMAX_API_KEY_1=${MINIMAX_API_KEY_1:-}
+      - MINIMAX_API_KEY_2=${MINIMAX_API_KEY_2:-}
       # 管理员后台登录密码（必填）
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?请先在.env中设置ADMIN_PASSWORD}
       # 会话加密密钥（必填）

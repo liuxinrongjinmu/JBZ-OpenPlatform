@@ -2,8 +2,9 @@
 set -e
 
 # 替换 nginx 配置模板中的环境变量，输出到 Alpine nginx 的 http.d 目录
-export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}"
-envsubst '${DEEPSEEK_API_KEY}' < /etc/nginx/nginx.conf.template > /etc/nginx/http.d/default.conf
+export MINIMAX_API_KEY_1="${MINIMAX_API_KEY_1:-}"
+export MINIMAX_API_KEY_2="${MINIMAX_API_KEY_2:-}"
+envsubst '${MINIMAX_API_KEY_1} ${MINIMAX_API_KEY_2}' < /etc/nginx/nginx.conf.template > /etc/nginx/http.d/default.conf
 
 # 确保运行时目录存在
 mkdir -p /run/nginx /var/log/nginx

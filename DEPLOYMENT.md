@@ -122,10 +122,11 @@ SESSION_SECRET=在此填入随机32字节十六进制字符串
 
 # ========== 可选 ==========
 
-# DeepSeek API Key（AI 聊天机器人功能依赖）
-# 获取地址：https://platform.deepseek.com/api_keys
+# MiniMax API Key（AI 聊天机器人功能依赖）
+# 获取地址：https://platform.minimaxi.com （账户管理 → 接口密钥）
 # 不填则 AI 聊天机器人功能不可用（不影响文档浏览和管理后台）
-DEEPSEEK_API_KEY=
+MINIMAX_API_KEY_1=
+MINIMAX_API_KEY_2=
 
 # 日志级别（可选，默认只输出错误日志）
 # 设为 debug 可查看完整请求日志（调试用，生产环境建议留空）
@@ -474,7 +475,7 @@ docker compose restart
 | 资源 | 地址 |
 | --- | --- |
 | GitLab 仓库 | `https://git.jubaozan.cn/liuxinrong/JBZ-OpenPlatform` |
-| DeepSeek API 控制台 | `https://platform.deepseek.com/api_keys` |
+| MiniMax API 控制台 | `https://platform.minimaxi.com` |
 | VitePress 文档 | `https://vitepress.dev/` |
 | Docker 文档 | `https://docs.docker.com/` |
 
