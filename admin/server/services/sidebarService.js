@@ -202,6 +202,45 @@ export async function updateSidebarNode(dir, nodeId, patch) {
 }
 
 /**
+ * 调整菜单节点顺序（在同层级内上移/下移一位）
+ *
+ * @param {string} dir      - 文档目录名 ("merchant" | "supplier")
+ * @param {string} nodeId   - 节点 id（基于索引的路径，如 "0.2.3"）
+ * @param {'up'|'down'} direction - 移动方向
+ */
+export async function moveSidebarNode(dir, nodeId, direction) {
+  if (direction !== 'up' && direction !== 'down') {
+    throw new Error('INVALID_DIRECTION')
+  }
+
+  const tree = await parseSidebar(dir)
+  const parts = nodeId.split('.').map(Number)
+  const index = parts[parts.length - 1]
+
+  // 定位节点所在的兄弟数组（根层级或父节点 items）
+  let siblings
+  if (parts.length === 1) {
+    siblings = tree
+  } else {
+    const parent = findNodeById(tree, parts.slice(0, -1).join('.'))
+    if (!parent || !parent.items) throw new Error('PARENT_NOT_FOUND')
+    siblings = parent.items
+  }
+
+  if (!siblings[index]) throw new Error('NODE_NOT_FOUND')
+  const target = direction === 'up' ? index - 1 : index + 1
+  if (target < 0 || target >= siblings.length) {
+    throw new Error('ALREADY_AT_EDGE')
+  }
+
+  // 与相邻兄弟交换位置
+  const [node] = siblings.splice(index, 1)
+  siblings.splice(target, 0, node)
+
+  return serializeSidebar(dir, tree)
+}
+
+/**
  * 按 id 路径查找节点
  */
 function findNodeById(nodes, id) {

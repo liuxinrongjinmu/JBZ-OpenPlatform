@@ -32,7 +32,7 @@ export default {
       <div v-else style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:16px;">
         <sidebar-node v-for="node of tree" :key="node.id"
                       :node="node" :dir="dir" :depth="0"
-                      @edit="editNode" @delete="deleteNode" @add-child="addChildNode" />
+                      @edit="editNode" @delete="deleteNode" @add-child="addChildNode" @move="moveNode" />
         <div v-if="tree.length === 0" style="text-align:center;padding:20px;color:#9ca3af;">暂无菜单项</div>
       </div>
 
@@ -79,6 +79,7 @@ export default {
       docs: [],
       modalDocId: '',
       sidebarErrors: [],
+      moving: false, // 防止并发点击导致排序错乱
     }
   },
   async mounted() {
@@ -151,6 +152,20 @@ export default {
       } catch (err) { alert('删除失败: ' + err.message) }
     },
 
+    // 上移/下移节点（调用后端实时保存，成功后刷新树）
+    async moveNode(node, direction) {
+      if (this.moving) return
+      this.moving = true
+      try {
+        await api.moveSidebarNode(node.id, this.dir, direction)
+        await this.loadTree()
+      } catch (err) {
+        alert('移动失败: ' + err.message)
+      } finally {
+        this.moving = false
+      }
+    },
+
     // 新增子节点
     addChildNode(parentId) {
       this.modalTitle = '新增子节点'
@@ -199,7 +214,7 @@ export default {
 export const SidebarNode = {
   name: 'SidebarNode',
   props: ['node', 'dir', 'depth'],
-  emits: ['edit', 'delete', 'add-child'],
+  emits: ['edit', 'delete', 'add-child', 'move'],
   template: `
     <div>
       <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin:2px 0;border-radius:6px;transition:background .15s;"
@@ -212,6 +227,10 @@ export const SidebarNode = {
         <span v-else style="font-size:12px;">📄</span>
         <span style="flex:1;font-size:14px;">{{ node.text }}</span>
         <span v-if="node.link" style="font-size:11px;color:#9ca3af;font-family:monospace;">{{ node.link }}</span>
+        <button @click="$emit('move', node, 'up')" title="上移（与上一项交换位置，实时保存）"
+                style="background:none;border:none;cursor:pointer;font-size:13px;color:#6b7280;padding:2px 4px;">↑</button>
+        <button @click="$emit('move', node, 'down')" title="下移（与下一项交换位置，实时保存）"
+                style="background:none;border:none;cursor:pointer;font-size:13px;color:#6b7280;padding:2px 4px;">↓</button>
         <button @click="$emit('add-child', node.id)" title="添加子节点"
                 style="background:none;border:none;cursor:pointer;font-size:14px;color:#9ca3af;padding:2px 4px;">+</button>
         <button @click="$emit('edit', node)" title="编辑"
@@ -223,7 +242,8 @@ export const SidebarNode = {
                     :node="child" :dir="dir" :depth="depth + 1"
                     @edit="e => $emit('edit', e)"
                     @delete="e => $emit('delete', e)"
-                    @add-child="e => $emit('add-child', e)" />
+                    @add-child="e => $emit('add-child', e)"
+                    @move="(n, d) => $emit('move', n, d)" />
     </div>
   `,
 }

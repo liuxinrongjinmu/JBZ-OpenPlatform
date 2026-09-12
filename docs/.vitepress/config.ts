@@ -1,23 +1,14 @@
-import { defineConfig, loadEnv } from 'vitepress'
+import { defineConfig } from 'vitepress'
 import sidebar from './sidebar.js'
 
-// 加载项目根目录的 .env 文件（dev/build/preview 都生效）
-const env = loadEnv('', process.cwd(), 'VITE_')
-const DEEPSEEK_API_KEY = env.VITE_DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY || ''
-
-// 构造 Vite proxy 配置
+// 开发/预览模式下的 /api/chat 代理：转发到本地 admin server（Express），
+// 与生产环境链路一致（nginx → Express :3001 → MiniMax，含 RAG 增强）。
+// 使用前需先启动：npm run admin:dev
+const ADMIN_PORT = process.env.ADMIN_PORT || 3001
 const chatProxy = {
-  target: 'https://api.deepseek.com',
+  target: `http://127.0.0.1:${ADMIN_PORT}`,
   changeOrigin: true,
   secure: true,
-  rewrite: (path: string) => path.replace(/^\/api\/chat/, '/v1/chat/completions'),
-  configure: (proxy: any) => {
-    proxy.on('proxyReq', (proxyReq: any) => {
-      if (DEEPSEEK_API_KEY) {
-        proxyReq.setHeader('Authorization', `Bearer ${DEEPSEEK_API_KEY}`)
-      }
-    })
-  },
 }
 
 export default defineConfig({
@@ -44,8 +35,8 @@ export default defineConfig({
     },
   },
   srcExclude: ['**/语雀API文档迁移/**', '**/docs-management/**', '**/.backup_before_reconstruct/**', '**/tools/**', '**/cache/**', '**/dist/**', '**/node_modules/**'],
-  // 开发/预览模式下的API代理（生产环境由nginx处理）
-  // .env 文件中定义 VITE_DEEPSEEK_API_KEY
+  // 开发/预览模式下的 /api/chat 代理（生产环境由 nginx 处理），
+  // 转发到本地 admin server（Express → MiniMax），需先启动 npm run admin:dev
   vite: {
     server: { proxy: { '/api/chat': chatProxy } },
     preview: { proxy: { '/api/chat': chatProxy } },

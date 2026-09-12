@@ -250,3 +250,24 @@
   color: var(--vp-c-brand-1) !important;
   font-weight: 600 !important;
 }
+
+/* ==========================================
+   布局宽度优化：减少宽屏两侧留白，扩大正文显示区域
+   （VitePress 默认版面上限 1440px、正文仅 688px，
+     超宽屏两侧会出现大面积空白）
+   ========================================== */
+:root {
+  /* 整体版面上限：1440px → 1792px，压缩超宽屏左右留白 */
+  --vp-layout-max-width: 1792px;
+  /* 左侧菜单栏：272px → 240px，减少菜单栏宽度占比 */
+  --vp-sidebar-width: 240px;
+}
+
+/* 正文内容区：默认 688px → 960px，表格、代码块等核心内容展示更完整
+   （仅在 ≥1280px 且有右侧目录的桌面端生效，窄屏布局不受影响；
+    VPDoc 的样式是 scoped，需要 !important 覆盖） */
+@media (min-width: 1280px) {
+  .VPDoc.has-aside .content-container {
+    max-width: 960px !important;
+  }
+}

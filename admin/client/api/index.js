@@ -65,6 +65,8 @@ export const api = {
   addSidebarNode: (data) => request('/sidebar/node', { method: 'POST', body: data }),
   updateSidebarNode: (nodeId, data) => request(`/sidebar/node/${nodeId}`, { method: 'PUT', body: data }),
   deleteSidebarNode: (nodeId, dir) => request(`/sidebar/node/${nodeId}`, { method: 'DELETE', body: { dir } }),
+  moveSidebarNode: (nodeId, dir, direction) =>
+    request('/sidebar/node/move', { method: 'POST', body: { nodeId, dir, direction } }),
 
   // 图片
   getImages: (params) => {

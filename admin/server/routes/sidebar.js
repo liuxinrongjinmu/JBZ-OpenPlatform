@@ -8,6 +8,7 @@ import {
   addSidebarNode,
   removeSidebarNode,
   updateSidebarNode,
+  moveSidebarNode,
   validateSidebarLinks,
   validateSingleNode,
 } from '../services/sidebarService.js'
@@ -143,6 +144,24 @@ router.delete('/node/:nodeId', async (req, res, next) => {
     await removeSidebarNode(dir, req.params.nodeId)
     res.json({ success: true })
   } catch (err) {
+    next(err)
+  }
+})
+
+// POST 移动节点顺序（上移/下移，实时写回 sidebar.js）
+router.post('/node/move', async (req, res, next) => {
+  try {
+    const { dir, nodeId, direction } = req.body
+    if (!dir || !nodeId || !direction) return res.status(400).json({ error: 'MISSING_FIELDS' })
+    const dirCheck = validateDir(dir)
+    if (!dirCheck.valid) return res.status(400).json({ error: 'INVALID_DIR', message: dirCheck.message })
+    if (String(nodeId).length > 200) return res.status(400).json({ error: 'INVALID_NODE_ID' })
+    await moveSidebarNode(dir, nodeId, direction)
+    res.json({ success: true })
+  } catch (err) {
+    if (['INVALID_DIRECTION', 'PARENT_NOT_FOUND', 'NODE_NOT_FOUND', 'ALREADY_AT_EDGE'].includes(err.message)) {
+      return res.status(400).json({ error: err.message, message: `移动失败: ${err.message}` })
+    }
     next(err)
   }
 })
