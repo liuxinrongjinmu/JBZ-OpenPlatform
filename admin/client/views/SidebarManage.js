@@ -3,7 +3,7 @@
  */
 import { api } from '../api/index.js'
 
-export default {
+const SidebarManage = {
   name: 'SidebarManage',
   props: { dir: String },
   template: `
@@ -209,6 +209,8 @@ export default {
     },
   },
 }
+
+export default SidebarManage
 
 // 递归节点组件
 export const SidebarNode = {
