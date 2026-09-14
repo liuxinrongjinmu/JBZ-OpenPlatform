@@ -224,7 +224,8 @@
   font-size: 16px !important;
 }
 
-/* 统一缩进与树形引导线：所有子级都保留左侧 1px 分隔线 */
+/* 统一缩进与树形引导线：所有子级都保留左侧 1px 分隔线
+   缩进用 10px：层级深（5 层），过大会挤压标题可用宽度 */
 .VPSidebarItem.level-0 .items,
 .VPSidebarItem.level-1 .items,
 .VPSidebarItem.level-2 .items,
@@ -232,7 +233,7 @@
 .VPSidebarItem.level-4 .items,
 .VPSidebarItem.level-5 .items {
   border-left: 1px solid var(--vp-c-divider) !important;
-  padding-left: 14px !important;
+  padding-left: 10px !important;
 }
 
 /* 各级菜单项之间的间距一致 */
@@ -259,8 +260,17 @@
 :root {
   /* 整体版面上限：1440px → 1792px，压缩超宽屏左右留白 */
   --vp-layout-max-width: 1792px;
-  /* 侧边栏宽度保持默认 272px：
-     本站菜单层级深（最多 5 层缩进），压窄会导致菜单文字截断 */
+  /* 侧边栏宽度：272px → 320px。
+     本站菜单层级深（最多 5 层缩进）且标题长，
+     默认宽度会导致标题显示不全，加宽后配合换行完整展示 */
+  --vp-sidebar-width: 320px;
+}
+
+/* 侧边栏长标题：允许在任意字符处换行，确保完整可见不截断 */
+.VPSidebarItem .text {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
 }
 
 /* 正文内容区：默认 688px → 960px，表格、代码块等核心内容展示更完整
