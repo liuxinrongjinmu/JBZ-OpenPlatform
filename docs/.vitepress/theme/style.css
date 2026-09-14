@@ -95,7 +95,6 @@
   line-height: 1.5 !important;
   vertical-align: middle !important;
   border-bottom: 2px solid var(--vp-c-divider) !important;
-  white-space: nowrap !important;
   color: var(--vp-c-text-1) !important;
 }
 
@@ -106,38 +105,30 @@
   line-height: 1.6 !important;
   vertical-align: top !important;
   border-bottom: 1px solid var(--vp-c-divider) !important;
-  white-space: normal !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
   color: var(--vp-c-text-2) !important;
 }
 
-/* 列宽策略：防止前几列过宽挤压最后一列说明列 */
+/* 列宽完全交给 table-layout:auto 按内容长度自然分配，
+   不再人为限制首列/中间列/末列宽度（人为限制会导致
+   窄内容列被挤成竖排、宽内容列放不下）。
+   断行用 anywhere + min-width 组合：
+   - anywhere 让超长无断点内容（URL/接口路径/长参数串）
+     可以断行，不会把列的最小宽度撑得比容器还宽（撑破表格）；
+   - min-width 保证内容总宽超出需要压缩列宽时，
+     "String"/"Integer" 这类短词列不会被压到断行 */
+.vp-doc table th,
+.vp-doc table td {
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  min-width: 72px !important;
+}
+
+/* 首列通常是参数名/字段名（如 client_id、access_token），
+   压缩时给更宽的下限，避免参数名被断行
+   （access_token 12字符 code 约 115px，取 120px 覆盖） */
 .vp-doc table th:first-child,
 .vp-doc table td:first-child {
-  max-width: 220px !important;
-  width: auto !important;
-  word-break: keep-all !important;
-  overflow-wrap: break-word !important;
-  white-space: normal !important;
-}
-
-/* 中间列（类型/示例/必传等）：允许自然换行，限制最大宽度 */
-.vp-doc table th:not(:first-child):not(:last-child),
-.vp-doc table td:not(:first-child):not(:last-child) {
-  max-width: 220px !important;
-  width: auto !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
-}
-
-/* 最后一列（说明）：优先占用剩余空间，确保可读性 */
-.vp-doc table th:last-child,
-.vp-doc table td:last-child {
-  min-width: 300px !important;
-  width: 100% !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
+  min-width: 120px !important;
 }
 
 /* 表格斑马纹（隔行换色） */
@@ -150,10 +141,13 @@
   background-color: var(--vp-c-bg-mute) !important;
 }
 
-/* 表格代码样式（在表格内显示代码） */
+/* 表格代码样式：紧凑展示，但必须允许长接口路径/长参数名断行
+   （nowrap 会导致长代码溢出单元格，与相邻列文字重叠）。
+   用 anywhere 而非 break-all：放得下时完整展示、放不下才断，
+   break-all 会逐字符贪婪断行，可读性差 */
 .vp-doc table code {
-  white-space: nowrap !important;
-  word-break: keep-all !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
   background-color: var(--vp-c-bg-mute) !important;
   padding: 2px 6px !important;
   border-radius: 3px !important;
